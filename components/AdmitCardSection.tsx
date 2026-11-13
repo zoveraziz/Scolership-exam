@@ -429,9 +429,17 @@ export default function AdmitCardSection({ initialSearchId = "" }: AdmitCardSect
 
           {/* Printable Official Admit Card */}
           <div className="print-area bg-white rounded-3xl shadow-xl border-4 border-emerald-800 p-6 sm:p-10 relative overflow-hidden">
-            {/* Corner Decorative Watermark */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none select-none text-9xl font-black text-emerald-900">
-              {siteShortName}
+            {/* Center Circular Logo Watermark */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none flex items-center justify-center opacity-[0.06] w-80 h-80 sm:w-96 sm:h-96">
+              {settings.SiteLogo || settings.LogoUrl || settings.SiteLogoUrl || settings.Logo || settings["লোগো"] ? (
+                <img
+                  src={formatImageUrl(settings.SiteLogo || settings.LogoUrl || settings.SiteLogoUrl || settings.Logo || settings["লোগো"])}
+                  alt="Watermark Logo"
+                  className="w-full h-full object-contain grayscale"
+                />
+              ) : (
+                <span className="text-9xl font-black text-emerald-900">{siteShortName}</span>
+              )}
             </div>
 
             {/* Admit Card Top Header */}

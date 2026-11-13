@@ -113,7 +113,19 @@ export default function ResultSection() {
             </button>
           </div>
 
-          <div className="print-area bg-white rounded-3xl shadow-xl border-2 border-purple-300 p-6 sm:p-10 space-y-6">
+          <div className="print-area bg-white rounded-3xl shadow-xl border-2 border-purple-300 p-6 sm:p-10 space-y-6 relative overflow-hidden">
+            {/* Center Circular Logo Watermark */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none flex items-center justify-center opacity-[0.05] w-80 h-80 sm:w-96 sm:h-96">
+              {settings.SiteLogo || settings.LogoUrl || settings.SiteLogoUrl || settings.Logo || settings["লোগো"] ? (
+                <img
+                  src={formatImageUrl(settings.SiteLogo || settings.LogoUrl || settings.SiteLogoUrl || settings.Logo || settings["লোগো"])}
+                  alt="Watermark Logo"
+                  className="w-full h-full object-contain grayscale"
+                />
+              ) : (
+                <span className="text-9xl font-black text-purple-900">{siteShortName}</span>
+              )}
+            </div>
             {/* Header */}
             <div className="text-center border-b-2 border-purple-800 pb-5">
               <div className="w-16 h-16 bg-purple-800 text-white font-black text-2xl rounded-2xl flex items-center justify-center mx-auto mb-2 shadow overflow-hidden">
