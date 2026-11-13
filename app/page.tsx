@@ -80,11 +80,11 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Top Helpline & Notice Bar */}
-      <TopNoticeBar />
-
-      {/* Main Header with Navigation */}
-      <Header activeTab={activeTab} setActiveTab={switchTab} />
+      {/* Sticky Combined Header: Helpline Top Bar + Main Header with Navigation */}
+      <div className="sticky top-0 z-40 bg-white shadow-md">
+        <TopNoticeBar />
+        <Header activeTab={activeTab} setActiveTab={switchTab} />
+      </div>
 
       {/* Animated Notice Marquee Bar */}
       <MarqueeNotice onViewRules={() => switchTab("rules")} />

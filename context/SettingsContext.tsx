@@ -87,16 +87,23 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (json.success && json.data) {
         // লোগো কি (logo _url, LogoUrl, SiteLogo, etc.) স্বয়ংক্রিয় শনাক্ত ও ম্যাপিং
         let detectedLogo = "";
+        let detectedTaglineSize = "";
         Object.keys(json.data).forEach((key) => {
           const cleanKey = key.toLowerCase().replace(/[\s_-]/g, "");
           if (cleanKey === "logourl" || cleanKey === "sitelogo" || cleanKey === "logo") {
             detectedLogo = json.data[key];
+          }
+          if (cleanKey === "sitetaglinesize" || cleanKey === "taglinesize") {
+            detectedTaglineSize = json.data[key];
           }
         });
 
         if (detectedLogo) {
           json.data.SiteLogo = detectedLogo;
           json.data.LogoUrl = detectedLogo;
+        }
+        if (detectedTaglineSize) {
+          json.data.SiteTaglineSize = detectedTaglineSize;
         }
 
         setSettings((prev) => ({

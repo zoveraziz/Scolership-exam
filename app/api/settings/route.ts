@@ -60,6 +60,18 @@ export async function GET() {
             customData["চলমান_নোটিশ"] ||
             "";
 
+          // যদি গুগল শিট থেকে HeroBadge রো-টি মুছে দেওয়া হয়, তাহলে ডিফল্ট ভ্যালু ওভাররাইট করে খালি স্ট্রিং পাঠানো
+          const heroBadge = customData.HeroBadge !== undefined ? customData.HeroBadge : "";
+
+          // লোগো URL ম্যাপিং (logo_url, LogoUrl, SiteLogo, etc.)
+          let detectedLogo = "";
+          Object.keys(customData).forEach((key) => {
+            const cleanKey = key.toLowerCase().replace(/[\s_-]/g, "");
+            if (cleanKey === "logourl" || cleanKey === "sitelogo" || cleanKey === "logo") {
+              detectedLogo = customData[key];
+            }
+          });
+
           return NextResponse.json(
             {
               success: true,
@@ -67,6 +79,9 @@ export async function GET() {
               data: {
                 ...defaultSettings,
                 ...customData,
+                SiteLogo: detectedLogo || customData.SiteLogo || "",
+                LogoUrl: detectedLogo || customData.LogoUrl || "",
+                HeroBadge: heroBadge,
                 SiteName: siteName,
                 SiteTagline: siteTagline,
                 MarqueeNotice: marqueeNotice,

@@ -69,15 +69,15 @@ export default function Header({ activeTab, setActiveTab }: HeaderProps) {
     "";
 
   const navItems = [
-    { id: "home", label: "হোম", icon: Home },
-    { id: "notice", label: "নোটিশ বোর্ড", icon: Bell },
-    { id: "rules", label: "নিয়মাবলী ও সিলেবাস", icon: BookOpen },
-    { id: "register", label: "অনলাইন রেজিস্ট্রেশন", icon: UserPlus },
-    { id: "admit", label: "এডমিট কার্ড", icon: CreditCard },
-    { id: "result", label: "ফলাফল", icon: Award },
-    { id: "about", label: "আমাদের সম্পর্কে", icon: Info },
-    { id: "messages", label: "গুণীজনের বাণী", icon: MessageSquareQuote },
-    { id: "contact", label: "যোগাযোগ", icon: PhoneCall },
+    { id: "home", label: settings.MenuHome || "হোম", icon: Home },
+    { id: "notice", label: settings.MenuNotice || "নোটিশ বোর্ড", icon: Bell },
+    { id: "rules", label: settings.MenuRules || "নিয়মাবলী ও সিলেবাস", icon: BookOpen },
+    { id: "register", label: settings.MenuRegister || "অনলাইন রেজিস্ট্রেশন", icon: UserPlus },
+    { id: "admit", label: settings.MenuAdmit || "এডমিট কার্ড", icon: CreditCard },
+    { id: "result", label: settings.MenuResult || "ফলাফল", icon: Award },
+    { id: "about", label: settings.MenuAbout || "আমাদের সম্পর্কে", icon: Info },
+    { id: "messages", label: settings.MenuMessages || "গুণীজনের বাণী", icon: MessageSquareQuote },
+    { id: "contact", label: settings.MenuContact || "যোগাযোগ", icon: PhoneCall },
   ];
 
   const handleNavClick = (id: string) => {
@@ -87,7 +87,7 @@ export default function Header({ activeTab, setActiveTab }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-40">
+    <header className="bg-white">
       {/* Main Top Header */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
