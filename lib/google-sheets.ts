@@ -1,9 +1,17 @@
 import { google } from "googleapis";
 
 // Google Cloud Service Account configuration
-const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const privateKey = (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+const clientEmail =
+  process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
+  "dsp-exam-service@dsp-exan-project.iam.gserviceaccount.com";
+
+const privateKey = (
+  process.env.GOOGLE_PRIVATE_KEY ||
+  `-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDWSiXgnxsoVaM7\nsfru1lBUzptR2YTU6kWPI8dbx0NCzybN06QGBG96p2zVncXYMOMdDbu9abG0L8TP\nyWLCPqDrBDhcAA5G2RX+9Gg6EUyqoGVINTOxFYu3twSd5pxgWqjIENycATLESiBf\nN5CC1cf1FEoSvG1mrKfGhg4t0ZBXF48a5s2ZtkxO9KbQAV8x/vKVwheSTeGcRHl7\nFC3OhFyfzXwwHQm15fgdGWslsdKwGvLdSOu4brJUAQpYLBSCUc4mHKXNN7p8lrou\n+MegCQ2i6AoVyr1lvmajdfc3KVfsrKBV4OyZn1EL0G4Su6Tc5UcNSNCkWA8PUAKb\nITf9AaSnAgMBAAECggEAE8Gh91vD5baWMOk/pihvyeSDJmCEYhrijzKwbRzpwxg/\nzscok/4cXGBg5Nrsbs+nCLqHk2F8vDeRO3T+MW6+aEcrKQmU8gw5U8MAdFC8Uu4s\nbaQAtYlefcbBBWEfDAp1DX5HJezoW3eCv4nrErJCAq2Rsg4u6eyYypv5D66xUji9\nqg73ZflKTvnM7gnsnjWSVOef5Dry6+YsiCtPvLIW2VOwcyQdaaSPOlLnbTPGLQtU\n7jHULDJwCh1SbEr7Fvx6YLLoj9Jj7vMMMB0YeBrAApL1/aE9p63SwD990KxsK0H4\nRRflXyYO1N98bbBB7U2KgwUO1e4RRoDD72G2XfMFAQKBgQD9qHFqvHVrJc+j/bW3\nBZP/sTmh5zss4JREBbUnxSX5epIXvmUWQpPhZbMqGVNyXWk81e1nyP0jfRbT8DqX\nmErCbDHkS9o237Ke2MJRambIbQm2aQxMb6g78HHo4/CqpER/wNyBB2InV4kMgXOy\nZewGemvv2FOm1Zs+FaNskNgZAQKBgQDYRKb3ecqffeRTI3dnOv3gGJXJRntfN8wD\nR3bL5/mpDsSOmfWPZkWv65XUsUC8wF2jWZlCci6rKwB5zZOGlv0YScaMM9p4a42i\nEfOUNI0dyVsZvQ9spm1JjEJbVKUR/j+LM2Y69UWsPukaxpn7iUOlUTr8TxqJQ1uB\njRjwY7xVpwKBgQCMliY+NTOS7kL2LjDfvny3k59Qp5r5lYM3bD5qS29vpUqBVGos\nezwBCd/SLnU8hp9EM4FAK3p5h+P2FUg0KxkMRvEkChJopXUXayXP//v1i9F9Qx2o\n453Hks1fea4ytZatg9Pyw4fYLEDuKHVaY/j74jAen7RFXFCNiWqpSmIrAQKBgDmi\nKgC/czEHwqYpSHO5M9jZlGk8IDqiyvqAu/bhDhZweg8qllctwRp9pMM2rXLfrNSQ\nVxhvB2LUJd9P2qW+bRpg5smMNAdtWiQ7tnbjfkvW0jFMweSJgYxdFX3zU740zEhT\nXUYPAQ9DAKoDDRwMW3ud5yNADWlRCvy+VkwRuCn3AoGBAM/RzzvbjGv4+X75WczR\nZlj1L2hWOgXO4AsdKM90ATo6pWm3jnFymCkiU6Q3ADD87wnxlU+HzZULXThO8RRQ\npvQhEkhnkXtLm4XB72s9iUFkRwmKuCJS+7IBXpdbOdUdgwnEhWosjP1fA/ss84zW\nuUFDo53MNEqXseHhBICThB/b\n-----END PRIVATE KEY-----\n`
+).replace(/\\n/g, "\n");
+
+const spreadsheetId =
+  process.env.GOOGLE_SHEET_ID || "1ZZa_znMpmvFEgg3EydycX4_LfXyfcH-UCLrWZQ3j_Sg";
 
 let sheetsClient: any = null;
 
