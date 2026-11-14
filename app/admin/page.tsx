@@ -1722,6 +1722,79 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
+              {/* Top Horizontal Scrollbar & Drag Controls (As requested: "উপরে যে বারটা দিছো ওই বারটা ঠিক থাকুক") */}
+              <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-xs">
+                    <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
+                    <span>টেবিল ডানে-বামে সরানোর বার:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollTable(-250)}
+                    className="px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-300 font-bold shadow-xs flex items-center gap-1 transition"
+                    title="বামে সরান"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>বামে</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollTable(250)}
+                    className="px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-300 font-bold shadow-xs flex items-center gap-1 transition"
+                    title="ডানে সরান"
+                  >
+                    <span>ডানে</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Smooth Range Slider */}
+                <div className="flex-1 max-w-sm mx-2 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max={maxScrollWidth || 450}
+                    value={tableScrollLeft}
+                    onChange={(e) => scrollToPosition(Number(e.target.value))}
+                    className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-700"
+                    title="ডানে-বামে টেনে সম্পূর্ণ টেবিল দেখুন"
+                  />
+                </div>
+
+                {/* Quick Jump Buttons */}
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(0)}
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
+                  >
+                    রেজিস্ট্রেশন ও রোল
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(260)}
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
+                  >
+                    ছবি ও রসিদ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(520)}
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
+                  >
+                    নাম ও শ্রেণি
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(850)}
+                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold shadow"
+                  >
+                    অ্যাকশন কলাম ⏭
+                  </button>
+                </div>
+              </div>
+
               {/* Table Container with Sticky Header & Right Vertical Scroll */}
               <div
                 ref={tableContainerRef}
@@ -1729,9 +1802,8 @@ export default function AdminDashboardPage() {
                 className="max-h-[62vh] overflow-y-auto overflow-x-auto relative rounded-xl border border-gray-300 shadow-md bg-white"
               >
                 <table className="w-full text-left text-xs text-gray-700 min-w-[1150px] border-separate border-spacing-0">
-                  {/* Sticky Frozen Header: Titles + Frozen Horizontal Controller Row */}
+                  {/* Clean Frozen Header: Single Title Row (middle 'ডানে-বামে সরান' row removed as requested) */}
                   <thead className="sticky top-0 z-30 shadow-md">
-                    {/* Row 1: Column Titles (Separated Registration No and Roll No) */}
                     <tr className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
                       <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 border-b border-emerald-900 whitespace-nowrap">
                         রেজিস্ট্রেশন নম্বর
@@ -1759,84 +1831,6 @@ export default function AdminDashboardPage() {
                       </th>
                       <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-right border-b border-emerald-900 whitespace-nowrap">
                         যাচাই ও অ্যাকশন
-                      </th>
-                    </tr>
-
-                    {/* Row 2: Frozen Horizontal Range Slider & Buttons Directly Under the Titles */}
-                    <tr className="bg-emerald-900 text-white">
-                      <th colSpan={9} className="sticky top-[43px] z-30 bg-emerald-900 px-3 py-2 border-b-2 border-emerald-700 shadow-sm font-normal">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-amber-300 flex items-center gap-1 text-[11px]">
-                              <SlidersHorizontal className="w-3.5 h-3.5" />
-                              <span>ডানে-বামে সরান:</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => scrollTable(-250)}
-                              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg border border-emerald-700 font-bold flex items-center gap-1 transition shadow-sm"
-                              title="বামে স্ক্রল করুন"
-                            >
-                              <ChevronLeft className="w-4 h-4 text-amber-300" />
-                              <span>বামে</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => scrollTable(250)}
-                              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg border border-emerald-700 font-bold flex items-center gap-1 transition shadow-sm"
-                              title="ডানে স্ক্রল করুন"
-                            >
-                              <span>ডানে</span>
-                              <ChevronRight className="w-4 h-4 text-amber-300" />
-                            </button>
-                          </div>
-
-                          {/* Range Slider Pinned In Frozen Header */}
-                          <div className="flex-1 max-w-xs mx-2 flex items-center gap-2">
-                            <input
-                              type="range"
-                              min="0"
-                              max={maxScrollWidth || 450}
-                              value={tableScrollLeft}
-                              onChange={(e) => scrollToPosition(Number(e.target.value))}
-                              className="w-full h-2 bg-emerald-950 rounded-lg appearance-none cursor-pointer accent-amber-400"
-                              title="ডানে-বামে ড্র্যাগ করে টেবিল মুভ করুন"
-                            />
-                          </div>
-
-                          {/* Quick Column Jump Pills */}
-                          <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
-                            <span className="text-emerald-300 text-[10px]">কুইক জাম্প:</span>
-                            <button
-                              type="button"
-                              onClick={() => scrollToPosition(0)}
-                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
-                            >
-                              রেজি ও রোল
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => scrollToPosition(260)}
-                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
-                            >
-                              ছবি ও রসিদ
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => scrollToPosition(520)}
-                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
-                            >
-                              নাম ও শ্রেণি
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => scrollToPosition(850)}
-                              className="px-2.5 py-0.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold rounded shadow"
-                            >
-                              অ্যাকশন ও এডমিট
-                            </button>
-                          </div>
-                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -2003,82 +1997,51 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
 
-              {/* STICKY BOTTOM FLOATING HORIZONTAL CONTROLS (Always visible at display bottom) */}
-              <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border border-emerald-500 rounded-xl p-2.5 shadow-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-emerald-950 flex items-center gap-1 text-[11px]">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>ডিসপ্লের নিচের স্ক্রলবার:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(-250)}
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg border border-gray-300 font-bold flex items-center gap-1 transition shadow-sm"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-emerald-700" />
-                    <span>বামে সরান</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(250)}
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg border border-gray-300 font-bold flex items-center gap-1 transition shadow-sm"
-                  >
-                    <span>ডানে সরান</span>
-                    <ChevronRight className="w-4 h-4 text-emerald-700" />
-                  </button>
-                </div>
-
-                {/* Bottom Range Slider */}
-                <div className="flex-1 max-w-xs mx-2 flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max={maxScrollWidth || 450}
-                    value={tableScrollLeft}
-                    onChange={(e) => scrollToPosition(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                    title="ডিসপ্লে নিচ থেকে ডানে-বামে ড্র্যাগ করে টেবিল দেখুন"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(0)}
-                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold border border-gray-200"
-                  >
-                    ⏮ শুরুতে
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(850)}
-                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold shadow"
-                  >
-                    অ্যাকশন কলাম ⏭
-                  </button>
-                </div>
-              </div>
-
-              {/* Pagination */}
+              {/* Highlighted & Prominent Pagination (পূর্ববর্তী ও পরবর্তী হাইলাইট) */}
               {subTotalPages > 1 && (
-                <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
-                  <span>
-                    পৃষ্ঠা {subPage} এর {subTotalPages} (মোট {totalSubmissions} জন)
-                  </span>
-                  <div className="flex gap-1.5">
+                <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 rounded-2xl border-2 border-emerald-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span className="text-xs sm:text-sm font-bold text-emerald-950">
+                      পৃষ্ঠা <span className="text-emerald-800 bg-white px-2.5 py-0.5 rounded-lg border border-emerald-300 font-mono text-sm shadow-xs">{subPage}</span> এর{" "}
+                      <span className="text-gray-700 font-mono">{subTotalPages}</span>
+                    </span>
+                    <span className="text-xs text-gray-500 font-medium ml-1">
+                      (মোট <span className="font-bold text-gray-800">{totalSubmissions}</span> জন আবেদনকারী)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       disabled={subPage <= 1}
                       onClick={() => fetchSubmissions(subPage - 1)}
-                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-40"
+                      className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow-sm ${
+                        subPage <= 1
+                          ? "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300"
+                          : "bg-white hover:bg-emerald-700 text-emerald-800 hover:text-white border-2 border-emerald-400 hover:border-emerald-700 active:scale-95 shadow-xs"
+                      }`}
                     >
-                      পূর্ববর্তী
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>পূর্ববর্তী পৃষ্ঠা</span>
                     </button>
+
+                    <div className="px-3 py-1.5 bg-emerald-800 text-white font-mono font-bold text-xs rounded-xl shadow-inner">
+                      {subPage} / {subTotalPages}
+                    </div>
+
                     <button
+                      type="button"
                       disabled={subPage >= subTotalPages}
                       onClick={() => fetchSubmissions(subPage + 1)}
-                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-40"
+                      className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow-sm ${
+                        subPage >= subTotalPages
+                          ? "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300"
+                          : "bg-emerald-700 hover:bg-emerald-800 text-white border-2 border-emerald-700 hover:border-emerald-800 active:scale-95 shadow-md shadow-emerald-700/20"
+                      }`}
                     >
-                      পরবর্তী
+                      <span>পরবর্তী পৃষ্ঠা</span>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
