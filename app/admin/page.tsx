@@ -1722,87 +1722,13 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {/* Top Horizontal Scrollbar & Drag Controls (As requested: "উপরে যে বারটা দিছো ওই বারটা ঠিক থাকুক") */}
-              <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-xs">
-                    <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
-                    <span>টেবিল ডানে-বামে সরানোর বার:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(-250)}
-                    className="px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-300 font-bold shadow-xs flex items-center gap-1 transition"
-                    title="বামে সরান"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>বামে</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(250)}
-                    className="px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-300 font-bold shadow-xs flex items-center gap-1 transition"
-                    title="ডানে সরান"
-                  >
-                    <span>ডানে</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Smooth Range Slider */}
-                <div className="flex-1 max-w-sm mx-2 flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max={maxScrollWidth || 450}
-                    value={tableScrollLeft}
-                    onChange={(e) => scrollToPosition(Number(e.target.value))}
-                    className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-700"
-                    title="ডানে-বামে টেনে সম্পূর্ণ টেবিল দেখুন"
-                  />
-                </div>
-
-                {/* Quick Jump Buttons */}
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(0)}
-                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
-                  >
-                    রেজিস্ট্রেশন ও রোল
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(260)}
-                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
-                  >
-                    ছবি ও রসিদ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(520)}
-                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200 font-semibold"
-                  >
-                    নাম ও শ্রেণি
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(850)}
-                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold shadow"
-                  >
-                    অ্যাকশন কলাম ⏭
-                  </button>
-                </div>
-              </div>
-
               {/* Table Container with Sticky Header & Right Vertical Scroll */}
               <div
                 ref={tableContainerRef}
-                onScroll={handleTableScroll}
-                className="max-h-[62vh] overflow-y-auto overflow-x-auto relative rounded-xl border border-gray-300 shadow-md bg-white"
+                className="max-h-[68vh] overflow-y-auto overflow-x-auto relative rounded-xl border border-gray-200 shadow-sm bg-white"
               >
                 <table className="w-full text-left text-xs text-gray-700 min-w-[1150px] border-separate border-spacing-0">
-                  {/* Clean Frozen Header: Single Title Row (middle 'ডানে-বামে সরান' row removed as requested) */}
+                  {/* Clean Frozen Header */}
                   <thead className="sticky top-0 z-30 shadow-md">
                     <tr className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
                       <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 border-b border-emerald-900 whitespace-nowrap">
