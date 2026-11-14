@@ -39,28 +39,30 @@ export interface SiteSettings {
 }
 
 const defaultSettings: SiteSettings = {
-  SiteName: "দি স্টুডেন্টস ওয়েলফেয়ার ফাউন্ডেশন",
+  SiteName: "রেজাউল হাসান কয়েস লোদী বৃত্তি পরীক্ষা",
   SiteShortName: "SWF",
-  SiteTagline: "শিক্ষা সেবা ও মূল্যায়ন কর্মসূচি",
-  Hotline: "০১৯৭৯৫১৩৯৯০",
-  Email: "swfdhaka@gmail.com",
-  bKashNumber: "01721838990",
+  SiteTagline: "শিক্ষা, সেবা ও মেধা মূল্যায়নে অগ্রগামী",
+  Hotline: "০১৮২২৮৬২৯৩৯",
+  Email: "mabadshasyl@gmail.com",
+  bKashNumber: "০১৮২২৮৬২৯৩৯",
   RegistrationFee: "২০০",
-  ExamDate: "২০ নভেম্বর ২০২৬",
-  ExamCenterDefault: "বি.এ.এফ শাহীন কলেজ কেন্দ্র, ঢাকা",
-  HeroTitle: "বৃত্তি পরীক্ষা ২০২৬ এর অনলাইন রেজিস্ট্রেশন চলছে",
-  HeroSubtitle: "প্রাথমিক ও মাধ্যমিক স্তরের (৪র্থ থেকে ৮ম শ্রেণী) শিক্ষার্থীদের সুপ্ত মেধা বিকাশ, শিক্ষা সহায়তা এবং উৎসাহ প্রদানের লক্ষ্যে প্রতি বছরের ন্যায় এবারও বর্ণাঢ্য মেধা বৃত্তি পরীক্ষার আয়োজন করা হয়েছে।",
-  HeroBadge: "মেধা মূল্যায়ন ও বৃত্তি পরীক্ষা ২০২৬",
-  ApplicantCount: "১",
+  ExamDate: "২০ নভেম্বর ২০২৭",
+  ExamCenterDefault: "আম্বরখানা গার্লস স্কুল এন্ড কলেজ",
+  HeroTitle: "বৃত্তি পরীক্ষা ২০২৭ এর অনলাইন রেজিস্ট্রেশন চলছে",
+  HeroSubtitle: "প্রাথমিক ও মাধ্যমিক স্তরের (৪র্থ থেকে ৮ম শ্রেণী) শিক্ষার্থীদের সুপ্ত মেধা বিকাশ, শিক্ষা সহায়তা এবং উৎসাহ প্রদানের লক্ষ্যে এই মেধা বৃত্তি পরীক্ষার আয়োজন করা হয়েছে।",
+  HeroBadge: "",
+  ApplicantCount: "১০০০",
   ApplicationDeadline: "৩১ আগস্ট ২০২৬",
   AdmitCardStatus: "স্বয়ংক্রিয়",
   ContactTitle: "যোগাযোগের ঠিকানা ও তথ্য",
   ContactSubtitle: "যেকোনো জিজ্ঞাসা, পরামর্শ বা বৃত্তি সংক্রান্ত তথ্যের জন্য সরাসরি আমাদের সাথে যোগাযোগ করতে পারেন।",
-  OfficeAddress: "আমতলী, মহাখালী, ঢাকা-১২০৬, বাংলাদেশ।",
+  OfficeAddress: "সম্পাদकीय কার্যালয়, হাউসিং এস্টেট, সিলেট",
   OfficeHours: "সকাল ৯:০০ টা - বিকাল ৫:০০ টা (শুক্রবার বন্ধ)",
-  AlternativePhone: "",
-  ContactNotice: "",
+  AlternativePhone: "০১৭২১৮৩৮৯৯০",
+  ContactNotice: "বিশেষ ঘোষণা: সরকারি ছুটির দিনে অফিস বন্ধ থাকে।",
   ContactExtraInfo: "",
+  SiteLogo: "https://drive.google.com/file/d/1aHAO6U3PzfFv9eTtH5kjmasOgdCldv8Z/view?usp=sharing",
+  LogoUrl: "https://drive.google.com/file/d/1aHAO6U3PzfFv9eTtH5kjmasOgdCldv8Z/view?usp=sharing",
 };
 
 interface SettingsContextType {
@@ -106,10 +108,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           json.data.SiteTaglineSize = detectedTaglineSize;
         }
 
-        setSettings((prev) => ({
-          ...prev,
+        const mergedSettings = {
+          ...defaultSettings,
           ...json.data,
-        }));
+        };
+
+        setSettings(mergedSettings);
+
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("rhkl_site_settings", JSON.stringify(mergedSettings));
+          } catch (e) {
+            // ignore
+          }
+        }
       }
     } catch (err) {
       console.warn("Failed to load settings:", err);
@@ -119,6 +131,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("rhkl_site_settings");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.SiteName) {
+            setSettings((prev) => ({ ...prev, ...parsed }));
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
     refreshSettings();
   }, []);
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSheetData } from "@/lib/google-sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -7,31 +8,105 @@ export async function GET() {
     process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
 
   const defaultSettings = {
-    SiteName: process.env.NEXT_PUBLIC_SITE_NAME || "দি স্টুডেন্টস ওয়েলফেয়ার ফাউন্ডেশন",
+    SiteName: process.env.NEXT_PUBLIC_SITE_NAME || "রেজাউল হাসান কয়েস লোদী বৃত্তি পরীক্ষা",
     SiteShortName: "SWF",
-    Hotline: process.env.NEXT_PUBLIC_HOTLINE || "০১৯৭৯৫১৩৯৯০",
-    Email: process.env.NEXT_PUBLIC_EMAIL || "swfdhaka@gmail.com",
-    bKashNumber: process.env.NEXT_PUBLIC_BKASH_NUMBER || "01721838990",
+    Hotline: process.env.NEXT_PUBLIC_HOTLINE || "০১৮২২৮৬২৯৩৯",
+    Email: process.env.NEXT_PUBLIC_EMAIL || "mabadshasyl@gmail.com",
+    bKashNumber: process.env.NEXT_PUBLIC_BKASH_NUMBER || "০১৮২২৮৬২৯৩৯",
     RegistrationFee: process.env.NEXT_PUBLIC_REG_FEE || "২০০",
-    ExamDate: "২০ নভেম্বর ২০২৬",
-    ExamCenterDefault: "বি.এ.এফ শাহীন কলেজ কেন্দ্র, ঢাকা",
-    HeroTitle: "বৃত্তি পরীক্ষা ২০২৬ এর অনলাইন রেজিস্ট্রেশন চলছে",
-    HeroSubtitle: "প্রাথমিক ও মাধ্যমিক স্তরের (৪র্থ থেকে ৮ম শ্রেণী) শিক্ষার্থীদের সুপ্ত মেধা বিকাশ, শিক্ষা সহায়তা এবং উৎসাহ প্রদানের লক্ষ্যে প্রতি বছরের ন্যায় এবারও বর্ণাঢ্য মেধা বৃত্তি পরীক্ষার আয়োজন করা হয়েছে।",
-    HeroBadge: "মেধা মূল্যায়ন ও বৃত্তি পরীক্ষা ২০২৬",
+    ExamDate: "২০ নভেম্বর ২০২৭",
+    ExamCenterDefault: "আম্বরখানা গার্লস স্কুল এন্ড কলেজ",
+    HeroTitle: "বৃত্তি পরীক্ষা ২০২৭ এর অনলাইন রেজিস্ট্রেশন চলছে",
+    HeroSubtitle: "প্রাথমিক ও মাধ্যমিক স্তরের (৪র্থ থেকে ৮ম শ্রেণী) শিক্ষার্থীদের সুপ্ত মেধা বিকাশ, শিক্ষা সহায়তা এবং উৎসাহ প্রদানের লক্ষ্যে এই মেধা বৃত্তি পরীক্ষার আয়োজন করা হয়েছে।",
+    HeroBadge: "",
     ContactTitle: "যোগাযোগের ঠিকানা ও তথ্য",
     ContactSubtitle: "যেকোনো জিজ্ঞাসা, পরামর্শ বা বৃত্তি সংক্রান্ত তথ্যের জন্য সরাসরি আমাদের সাথে যোগাযোগ করতে পারেন।",
-    OfficeAddress: "আমতলী, মহাখালী, ঢাকা-১২০৬, বাংলাদেশ।",
+    OfficeAddress: "সম্পাদकीय কার্যালয়, হাউসিং এস্টেট, সিলেট",
     OfficeHours: "সকাল ৯:০০ টা - বিকাল ৫:০০ টা (শুক্রবার বন্ধ)",
-    AlternativePhone: "",
-    ContactNotice: "",
+    AlternativePhone: "০১৭২১৮৩৮৯৯০",
+    ContactNotice: "বিশেষ ঘোষণা: সরকারি ছুটির দিনে অফিস বন্ধ থাকে।",
     ContactExtraInfo: "",
-    SiteTagline: "শিক্ষা সেবা ও মূল্যায়ন কর্মসূচি",
+    SiteTagline: "শিক্ষা, সেবা ও মেধা মূল্যায়নে অগ্রগামী",
     MarqueeNotice: "",
-    ApplicantCount: "১",
+    ApplicantCount: "১০০০",
     ApplicationDeadline: "৩১ আগস্ট ২০২৬",
-    AdmitCardStatus: "স্বয়ংক্রিয়", // স্বয়ংক্রিয় (তারিখ অনুযায়ী)
+    AdmitCardStatus: "স্বয়ংক্রিয়",
+    SiteLogo: "https://drive.google.com/file/d/1aHAO6U3PzfFv9eTtH5kjmasOgdCldv8Z/view?usp=sharing",
+    LogoUrl: "https://drive.google.com/file/d/1aHAO6U3PzfFv9eTtH5kjmasOgdCldv8Z/view?usp=sharing",
   };
 
+  // 1. Try Direct Google Sheets API via Service Account (Instant, No Timeout)
+  try {
+    const rows = await getSheetData("Settings");
+    if (rows && rows.length > 0) {
+      const customData: Record<string, any> = {};
+      rows.forEach((row) => {
+        if (row && row[0] !== undefined) {
+          const key = String(row[0]).trim();
+          const val = row[1] !== undefined ? String(row[1]).trim() : "";
+          if (key && key !== "সেটিংস_নাম" && key !== "Key" && key !== "কী (Key)") {
+            customData[key] = val;
+          }
+        }
+      });
+
+      if (Object.keys(customData).length > 0) {
+        const siteName = (customData.SiteName || defaultSettings.SiteName || "")
+          .replace(/\)+$/, "")
+          .trim();
+
+        const siteTagline =
+          customData.SiteTagline ||
+          customData.SiteSubtitle ||
+          customData.Tagline ||
+          customData["লোগো_স্লোগান"] ||
+          defaultSettings.SiteTagline;
+
+        const marqueeNotice =
+          customData.MarqueeNotice ||
+          customData.RunningNotice ||
+          customData.NoticeTicker ||
+          customData["চলমান_নোটিশ"] ||
+          "";
+
+        const heroBadge = customData.HeroBadge !== undefined ? customData.HeroBadge : "";
+
+        let detectedLogo = "";
+        Object.keys(customData).forEach((key) => {
+          const cleanKey = key.toLowerCase().replace(/[\s_-]/g, "");
+          if (cleanKey === "logourl" || cleanKey === "sitelogo" || cleanKey === "logo") {
+            detectedLogo = customData[key];
+          }
+        });
+
+        return NextResponse.json(
+          {
+            success: true,
+            source: "google_sheets_service_account",
+            data: {
+              ...defaultSettings,
+              ...customData,
+              SiteLogo: detectedLogo || customData.SiteLogo || defaultSettings.SiteLogo,
+              LogoUrl: detectedLogo || customData.LogoUrl || defaultSettings.LogoUrl,
+              HeroBadge: heroBadge,
+              SiteName: siteName,
+              SiteTagline: siteTagline,
+              MarqueeNotice: marqueeNotice,
+            },
+          },
+          {
+            headers: {
+              "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+            },
+          }
+        );
+      }
+    }
+  } catch (sheetApiError) {
+    console.warn("Direct Google Sheets API fetch failed, trying Apps Script fallback:", sheetApiError);
+  }
+
+  // 2. Fallback to Google Apps Script Web App
   if (scriptUrl && scriptUrl.startsWith("http")) {
     try {
       const response = await fetch(`${scriptUrl}?action=getSettings`, {
@@ -60,10 +135,8 @@ export async function GET() {
             customData["চলমান_নোটিশ"] ||
             "";
 
-          // যদি গুগল শিট থেকে HeroBadge রো-টি মুছে দেওয়া হয়, তাহলে ডিফল্ট ভ্যালু ওভাররাইট করে খালি স্ট্রিং পাঠানো
           const heroBadge = customData.HeroBadge !== undefined ? customData.HeroBadge : "";
 
-          // লোগো URL ম্যাপিং (logo_url, LogoUrl, SiteLogo, etc.)
           let detectedLogo = "";
           Object.keys(customData).forEach((key) => {
             const cleanKey = key.toLowerCase().replace(/[\s_-]/g, "");
@@ -75,12 +148,12 @@ export async function GET() {
           return NextResponse.json(
             {
               success: true,
-              source: "google_sheet",
+              source: "google_sheet_apps_script",
               data: {
                 ...defaultSettings,
                 ...customData,
-                SiteLogo: detectedLogo || customData.SiteLogo || "",
-                LogoUrl: detectedLogo || customData.LogoUrl || "",
+                SiteLogo: detectedLogo || customData.SiteLogo || defaultSettings.SiteLogo,
+                LogoUrl: detectedLogo || customData.LogoUrl || defaultSettings.LogoUrl,
                 HeroBadge: heroBadge,
                 SiteName: siteName,
                 SiteTagline: siteTagline,
@@ -89,9 +162,7 @@ export async function GET() {
             },
             {
               headers: {
-                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0",
+                "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
               },
             }
           );
@@ -110,9 +181,7 @@ export async function GET() {
     },
     {
       headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0",
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
       },
     }
   );
