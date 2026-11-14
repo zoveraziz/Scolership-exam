@@ -41,6 +41,42 @@ export function getGoogleSheetsClient() {
 }
 
 /**
+ * Resolves exact tab title, handling variations like 'controlers' vs 'Controllers', 'Messages' vs 'বাণী'
+ */
+export async function getExactTabName(preferredName: string): Promise<string> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets || !spreadsheetId) return preferredName;
+
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const titles: string[] = meta.data.sheets?.map((s: any) => s.properties?.title) || [];
+
+    // 1. Direct match (case-insensitive)
+    const exact = titles.find((t) => t.toLowerCase() === preferredName.toLowerCase());
+    if (exact) return exact;
+
+    // 2. Fuzzy matches
+    const lower = preferredName.toLowerCase();
+    if (lower.includes("control")) {
+      const found = titles.find((t) => t.toLowerCase().includes("control"));
+      if (found) return found;
+    }
+    if (lower.includes("message") || preferredName.includes("বাণী")) {
+      const found = titles.find((t) => t.toLowerCase().includes("message") || t.includes("বাণী"));
+      if (found) return found;
+    }
+    if (lower.includes("committe") || preferredName.includes("পরিচালনা")) {
+      const found = titles.find((t) => t.toLowerCase().includes("committe") || t.includes("পরিচালনা"));
+      if (found) return found;
+    }
+
+    return preferredName;
+  } catch (error) {
+    return preferredName;
+  }
+}
+
+/**
  * Fetch all rows from a given sheet/tab
  */
 export async function getSheetData(tabName: string): Promise<any[][] | null> {
@@ -48,9 +84,10 @@ export async function getSheetData(tabName: string): Promise<any[][] | null> {
   if (!sheets || !spreadsheetId) return null;
 
   try {
+    const actualTab = await getExactTabName(tabName);
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${tabName}!A1:Z`,
+      range: `${actualTab}!A1:Z`,
     });
     return res.data.values || [];
   } catch (error) {
@@ -67,9 +104,10 @@ export async function appendSheetRow(tabName: string, rowValues: any[]) {
   if (!sheets || !spreadsheetId) return null;
 
   try {
+    const actualTab = await getExactTabName(tabName);
     const res = await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${tabName}!A:A`,
+      range: `${actualTab}!A:A`,
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
@@ -179,9 +217,10 @@ export async function getTabGid(tabName: string): Promise<number | null> {
   if (!sheets || !spreadsheetId) return null;
 
   try {
+    const actualTab = await getExactTabName(tabName);
     const meta = await sheets.spreadsheets.get({ spreadsheetId });
     const sheet = meta.data.sheets?.find(
-      (s: any) => s.properties?.title?.toLowerCase() === tabName.toLowerCase()
+      (s: any) => s.properties?.title?.toLowerCase() === actualTab.toLowerCase()
     );
     return sheet?.properties?.sheetId ?? null;
   } catch (error) {

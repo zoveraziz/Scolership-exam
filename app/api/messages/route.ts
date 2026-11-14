@@ -1,14 +1,51 @@
 import { NextResponse } from "next/server";
 import { INITIAL_MESSAGES } from "@/lib/initialData";
 import { DignitaryMessage } from "@/lib/types";
+import { getSheetData, getExactTabName } from "@/lib/google-sheets";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const scriptUrl =
-    process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
+  // 1. Direct fetch from Google Sheet via Service Account
+  try {
+    const tabName = await getExactTabName("Messages");
+    const rows = await getSheetData(tabName);
 
-  // যদি গুগল স্ক্রিপ্ট URL থাকে, গুগল শিট থেকে লাইভ বাণীগুলো আনব
+    if (rows && rows.length > 1) {
+      const messages: DignitaryMessage[] = rows
+        .slice(1)
+        .map((row, index) => ({
+          id: String(row[0] || index + 1),
+          name: String(row[1] || "").trim(),
+          role: String(row[2] || "").trim(),
+          text: String(row[3] || "").trim(),
+          photo: row[4] ? String(row[4]).trim() : undefined,
+        }))
+        .filter((m) => m.name && m.text);
+
+      if (messages.length > 0) {
+        return NextResponse.json(
+          {
+            success: true,
+            source: "google_sheet_direct",
+            data: messages,
+          },
+          {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0",
+            },
+          }
+        );
+      }
+    }
+  } catch (sheetErr) {
+    console.warn("Direct Google Sheet messages fetch failed, checking Apps Script:", sheetErr);
+  }
+
+  // 2. Fallback to Google Apps Script URL if configured
+  const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
   if (scriptUrl && scriptUrl.startsWith("http")) {
     try {
       const response = await fetch(`${scriptUrl}?action=getMessages`, {
@@ -22,7 +59,7 @@ export async function GET() {
           return NextResponse.json(
             {
               success: true,
-              source: "google_sheet",
+              source: "google_sheet_apps_script",
               data: result.data,
             },
             {
@@ -36,11 +73,11 @@ export async function GET() {
         }
       }
     } catch (err) {
-      console.warn("Google Sheet messages fetch error, falling back to local:", err);
+      console.warn("Google Apps Script messages fetch error, falling back to local:", err);
     }
   }
 
-  // শিট না থাকলে বা সমস্যা হলে লোকাল ইনিশিয়াল ডেটা রিটার্ন
+  // 3. Fallback to local default data
   return NextResponse.json(
     {
       success: true,
