@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { formatImageUrl } from "@/lib/imageUtils";
 import {
   LayoutDashboard,
   Settings,
@@ -832,62 +833,111 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+              <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
                 <table className="w-full text-left text-xs text-gray-700">
-                  <thead className="bg-gray-50 text-gray-600 font-bold uppercase border-b border-gray-200 text-[11px]">
+                  <thead className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
                     <tr>
-                      <th className="py-3 px-3">রেজি: নং</th>
-                      <th className="py-3 px-3">ছবি</th>
+                      <th className="py-3 px-3">রেজি: ও রোল</th>
+                      <th className="py-3 px-3 text-center">শিক্ষার্থীর ছবি</th>
+                      <th className="py-3 px-3 text-center">পেমেন্ট রসিদ</th>
                       <th className="py-3 px-3">শিক্ষার্থীর নাম</th>
                       <th className="py-3 px-3">শ্রেণি</th>
-                      <th className="py-3 px-3">রোল নং</th>
                       <th className="py-3 px-3">অভিভাবক ফোন</th>
                       <th className="py-3 px-3">স্ট্যাটাস</th>
-                      <th className="py-3 px-3 text-right">অ্যাকশন</th>
+                      <th className="py-3 px-3 text-right">যাচাই ও অ্যাকশন</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loadingSubmissions ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-gray-400">
-                          ডাটা লোড হচ্ছে...
+                        <td colSpan={8} className="py-12 text-center text-gray-400">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                            <span>ডাটা লোড হচ্ছে...</span>
+                          </div>
                         </td>
                       </tr>
                     ) : submissions.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-gray-400">
+                        <td colSpan={8} className="py-12 text-center text-gray-400">
                           কোনো আবেদনকারী পাওয়া যায়নি।
                         </td>
                       </tr>
                     ) : (
                       submissions.map((s, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50/80 transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-emerald-900">{s.regNo}</td>
+                        <tr key={idx} className="hover:bg-emerald-50/40 transition">
                           <td className="py-2.5 px-3">
-                            {s.photoUrl ? (
-                              <img
-                                src={s.photoUrl}
-                                alt="Student"
-                                className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                              />
+                            <div className="font-mono font-bold text-emerald-900">{s.regNo}</div>
+                            <div className="font-mono text-[11px] font-semibold text-amber-700">
+                              {s.rollNumber ? `রোল: ${s.rollNumber}` : "রোল নাই"}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {s.photoUrl && s.photoUrl !== "ছবি সংরক্ষিত" ? (
+                              <button
+                                onClick={() => setSelectedStudent(s)}
+                                className="group relative inline-block focus:outline-none"
+                                title="ছবি বড় করে দেখুন"
+                              >
+                                <img
+                                  src={formatImageUrl(s.photoUrl)}
+                                  alt="Student"
+                                  className="w-10 h-10 rounded-lg object-cover border border-emerald-300 shadow-sm group-hover:scale-110 group-hover:border-emerald-600 transition"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </div>
+                              </button>
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-[10px]">
+                              <div className="w-10 h-10 mx-auto rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 font-bold text-[9px]">
                                 ছবি নাই
                               </div>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 font-semibold text-gray-900">{s.name}</td>
-                          <td className="py-2.5 px-3 font-medium">{s.studentClass}</td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-amber-700">
-                            {s.rollNumber || "দেওয়া হয়নি"}
+                          <td className="py-2.5 px-3 text-center">
+                            {s.payShotUrl && s.payShotUrl !== "পেমেন্ট প্রমাণপত্র সংরক্ষিত" ? (
+                              <button
+                                onClick={() => setSelectedStudent(s)}
+                                className="group relative inline-block focus:outline-none"
+                                title="পেমেন্ট স্ক্রিনশট বড় করে দেখুন"
+                              >
+                                <img
+                                  src={formatImageUrl(s.payShotUrl)}
+                                  alt="Payment"
+                                  className="w-10 h-10 rounded-lg object-cover border border-amber-300 shadow-sm group-hover:scale-110 group-hover:border-amber-600 transition"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="text-[10px] text-gray-400">
+                                {s.senderBkash ? (
+                                  <span className="font-mono text-emerald-800 font-semibold">{s.senderBkash}</span>
+                                ) : (
+                                  "সংরক্ষিত"
+                                )}
+                              </div>
+                            )}
                           </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-gray-900">{s.name}</div>
+                            <div className="text-[11px] text-gray-500 truncate max-w-[150px]">{s.institution}</div>
+                          </td>
+                          <td className="py-2.5 px-3 font-medium text-emerald-800">{s.studentClass}</td>
                           <td className="py-2.5 px-3 font-mono">{s.guardianPhone}</td>
                           <td className="py-2.5 px-3">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                 s.status === "Approved" || s.status === "অনুমোদিত"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : "bg-amber-100 text-amber-800"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                  : "bg-amber-100 text-amber-800 border border-amber-300"
                               }`}
                             >
                               {s.status}
@@ -895,28 +945,33 @@ export default function AdminDashboardPage() {
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setSelectedStudent(s)}
+                                className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg text-[11px] font-bold border border-teal-200 transition"
+                                title="বিস্তারিত ও ছবি দেখুন"
+                              >
+                                বিস্তারিত
+                              </button>
                               {s.status !== "Approved" && s.status !== "অনুমোদিত" ? (
                                 <button
-                                  onClick={() => handleUpdateStudent(s, "Approved")}
-                                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold"
-                                  title="Approve"
+                                  onClick={() => handleUpdateStudent(s, "অনুমোদিত")}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition"
                                 >
-                                  Approve
+                                  অনুমোদন
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() => handleUpdateStudent(s, "Pending")}
-                                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[10px] font-bold"
-                                  title="Pending"
+                                  onClick={() => handleUpdateStudent(s, "পেন্ডিং")}
+                                  className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-semibold"
                                 >
-                                  Pending
+                                  পেন্ডিং
                                 </button>
                               )}
                               <a
                                 href={`/?tab=admit&reg=${s.regNo}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold"
+                                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition"
                               >
                                 এডমিট
                               </a>
@@ -1269,6 +1324,180 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Full Student & Payment Verification */}
+      {selectedStudent && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  শিক্ষার্থী ও পেমেন্ট তথ্য যাচাই
+                </h3>
+                <p className="text-xs text-emerald-700 font-mono">
+                  রেজি: {selectedStudent.regNo} {selectedStudent.rollNumber ? `• রোল: ${selectedStudent.rollNumber}` : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Images: Photo & Payment Receipt Side-by-Side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              {/* Student Photo */}
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xs font-bold text-gray-700 mb-2">শিক্ষার্থীর ছবি</span>
+                <div className="w-40 h-48 bg-white rounded-xl border-2 border-emerald-400 shadow-md overflow-hidden flex items-center justify-center relative group">
+                  {selectedStudent.photoUrl && selectedStudent.photoUrl !== "ছবি সংরক্ষিত" ? (
+                    <img
+                      src={formatImageUrl(selectedStudent.photoUrl)}
+                      alt="Student"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="text-xs text-gray-400 p-2">ছবি পাওয়া যায়নি</div>
+                  )}
+                </div>
+                {selectedStudent.photoUrl && selectedStudent.photoUrl.startsWith("http") && (
+                  <a
+                    href={selectedStudent.photoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-emerald-700 hover:underline mt-1.5 flex items-center gap-1"
+                  >
+                    <span>গুগল ড্রাইভ মূল ছবি</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              {/* Payment Screenshot */}
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xs font-bold text-gray-700 mb-2">বিকাশ পেমেন্ট রসিদ / স্ক্রিনশট</span>
+                <div className="w-40 h-48 bg-white rounded-xl border-2 border-amber-400 shadow-md overflow-hidden flex items-center justify-center relative group">
+                  {selectedStudent.payShotUrl && selectedStudent.payShotUrl !== "পেমেন্ট প্রমাণপত্র সংরক্ষিত" ? (
+                    <img
+                      src={formatImageUrl(selectedStudent.payShotUrl)}
+                      alt="Payment Screenshot"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="text-xs text-gray-400 p-2">স্ক্রিনশট পাওয়া যায়নি</div>
+                  )}
+                </div>
+                {selectedStudent.payShotUrl && selectedStudent.payShotUrl.startsWith("http") && (
+                  <a
+                    href={selectedStudent.payShotUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-amber-700 hover:underline mt-1.5 flex items-center gap-1"
+                  >
+                    <span>গুগল ড্রাইভ মূল রসিদ</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Student Full Info Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">শিক্ষার্থীর নাম</span>
+                <span className="font-bold text-gray-900">{selectedStudent.name}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">শ্রেণি ও লিঙ্গ</span>
+                <span className="font-semibold text-gray-800">
+                  {selectedStudent.studentClass} ({selectedStudent.gender || "ছাত্র"})
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">পিতার নাম</span>
+                <span className="text-gray-800">{selectedStudent.fatherName || "—"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">মাতার নাম</span>
+                <span className="text-gray-800">{selectedStudent.motherName || "—"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">শিক্ষা প্রতিষ্ঠান</span>
+                <span className="text-gray-800">{selectedStudent.institution || "—"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">জন্ম তারিখ</span>
+                <span className="text-gray-800">{selectedStudent.dob || "—"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">অভিভাবক ফোন</span>
+                <span className="font-mono font-bold text-emerald-800">{selectedStudent.guardianPhone || "—"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">বিকাশ প্রেরক নম্বর</span>
+                <span className="font-mono font-bold text-amber-800">{selectedStudent.senderBkash || "—"}</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-gray-400 block text-[10px] uppercase font-bold">পরীক্ষা কেন্দ্র ও তারিখ</span>
+                <span className="text-gray-800">
+                  {selectedStudent.examCenter || "আম্বরখানা গার্লস স্কুল"} ({selectedStudent.examDate || "২০ নভেম্বর ২০২৭"})
+                </span>
+              </div>
+            </div>
+
+            {/* Admin Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {selectedStudent.status !== "Approved" && selectedStudent.status !== "অনুমোদিত" ? (
+                  <button
+                    onClick={() => {
+                      handleUpdateStudent(selectedStudent, "অনুমোদিত");
+                      setSelectedStudent({ ...selectedStudent, status: "অনুমোদিত" });
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition"
+                  >
+                    ✓ আবেদন অনুমোদন করুন (Approve)
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      handleUpdateStudent(selectedStudent, "পেন্ডিং");
+                      setSelectedStudent({ ...selectedStudent, status: "পেন্ডিং" });
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold rounded-xl text-xs shadow transition"
+                  >
+                    পেন্ডিং করুন
+                  </button>
+                )}
+                <a
+                  href={`/?tab=admit&reg=${selectedStudent.regNo}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 transition"
+                >
+                  <span>এডমিট কার্ড</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="w-full sm:w-auto px-5 py-2 border border-gray-300 text-gray-700 font-semibold rounded-xl text-xs hover:bg-gray-50 transition"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}
