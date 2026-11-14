@@ -116,9 +116,10 @@ export default function AdminDashboardPage() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [savingStudent, setSavingStudent] = useState(false);
 
-  // Table Scroll Sync References
+  // Table Scroll Sync References & State
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const topScrollRef = useRef<HTMLDivElement>(null);
+  const [tableScrollLeft, setTableScrollLeft] = useState(0);
+  const [maxScrollWidth, setMaxScrollWidth] = useState(600);
 
   // Pages State
   const [pages, setPages] = useState<any[]>([]);
@@ -131,16 +132,14 @@ export default function AdminDashboardPage() {
     setTimeout(() => setToastMsg(null), 4000);
   };
 
-  // Sync horizontal scrolling between top scrollbar and table container
-  const handleTopScroll = () => {
-    if (topScrollRef.current && tableContainerRef.current) {
-      tableContainerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
-    }
-  };
-
   const handleTableScroll = () => {
-    if (topScrollRef.current && tableContainerRef.current) {
-      topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    if (tableContainerRef.current) {
+      const sl = tableContainerRef.current.scrollLeft;
+      setTableScrollLeft(sl);
+      const max = tableContainerRef.current.scrollWidth - tableContainerRef.current.clientWidth;
+      if (max > 0) {
+        setMaxScrollWidth(max);
+      }
     }
   };
 
@@ -153,6 +152,7 @@ export default function AdminDashboardPage() {
   const scrollToPosition = (position: number) => {
     if (tableContainerRef.current) {
       tableContainerRef.current.scrollTo({ left: position, behavior: "smooth" });
+      setTableScrollLeft(position);
     }
   };
 
@@ -1722,101 +1722,129 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {/* TOP HORIZONTAL NAVIGATION & SCROLL CONTROLS */}
-              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-gray-700 flex items-center gap-1">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>টেবিল স্ক্রল:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(-250)}
-                    className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-300 font-semibold shadow-sm flex items-center gap-1 transition"
-                    title="বামে স্ক্রল করুন"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-emerald-700" />
-                    <span>বামে</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollTable(250)}
-                    className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-300 font-semibold shadow-sm flex items-center gap-1 transition"
-                    title="ডানে স্ক্রল করুন"
-                  >
-                    <span>ডানে</span>
-                    <ChevronRight className="w-4 h-4 text-emerald-700" />
-                  </button>
-                </div>
-
-                {/* Quick Column Jump Pills */}
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
-                  <span className="text-gray-400">কুইক জাম্প:</span>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(0)}
-                    className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold hover:bg-emerald-200"
-                  >
-                    রেজি ও রোল
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(180)}
-                    className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded font-semibold hover:bg-gray-300"
-                  >
-                    ছবি ও রসিদ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(450)}
-                    className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded font-semibold hover:bg-gray-300"
-                  >
-                    নাম ও শ্রেণি
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollToPosition(700)}
-                    className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded font-semibold hover:bg-gray-300"
-                  >
-                    অ্যাকশন ও এডমিট
-                  </button>
-                </div>
-              </div>
-
-              {/* Synchronized Top Scrollbar */}
-              <div
-                ref={topScrollRef}
-                onScroll={handleTopScroll}
-                className="overflow-x-auto overflow-y-hidden h-3 bg-gray-100 rounded-full border border-gray-200"
-                style={{ scrollbarWidth: "thin" }}
-              >
-                <div style={{ width: "1150px", height: "1px" }} />
-              </div>
-
               {/* Table Container with Sticky Header & Right Vertical Scroll */}
               <div
                 ref={tableContainerRef}
                 onScroll={handleTableScroll}
-                className="max-h-[68vh] overflow-y-auto overflow-x-auto relative rounded-xl border border-gray-200 shadow-sm"
+                className="max-h-[62vh] overflow-y-auto overflow-x-auto relative rounded-xl border border-gray-300 shadow-md bg-white"
               >
-                <table className="w-full text-left text-xs text-gray-700 min-w-[1000px] border-collapse">
-                  {/* Sticky Frozen Header */}
-                  <thead className="sticky top-0 z-20 bg-emerald-950 text-white font-bold uppercase text-[11px] shadow-sm">
-                    <tr>
-                      <th className="py-3 px-3 bg-emerald-950">রেজি: ও রোল</th>
-                      <th className="py-3 px-3 text-center bg-emerald-950">শিক্ষার্থীর ছবি</th>
-                      <th className="py-3 px-3 text-center bg-emerald-950">পেমেন্ট রসিদ</th>
-                      <th className="py-3 px-3 bg-emerald-950">শিক্ষার্থীর নাম</th>
-                      <th className="py-3 px-3 bg-emerald-950">শ্রেণি</th>
-                      <th className="py-3 px-3 bg-emerald-950">অভিভাবক ফোন</th>
-                      <th className="py-3 px-3 bg-emerald-950">স্ট্যাটাস</th>
-                      <th className="py-3 px-3 text-right bg-emerald-950">যাচাই ও অ্যাকশন</th>
+                <table className="w-full text-left text-xs text-gray-700 min-w-[1150px] border-separate border-spacing-0">
+                  {/* Sticky Frozen Header: Titles + Frozen Horizontal Controller Row */}
+                  <thead className="sticky top-0 z-30 shadow-md">
+                    {/* Row 1: Column Titles (Separated Registration No and Roll No) */}
+                    <tr className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 border-b border-emerald-900 whitespace-nowrap">
+                        রেজিস্ট্রেশন নম্বর
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-center border-b border-emerald-900 whitespace-nowrap">
+                        রোল নম্বর
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-center border-b border-emerald-900 whitespace-nowrap">
+                        শিক্ষার্থীর ছবি
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-center border-b border-emerald-900 whitespace-nowrap">
+                        পেমেন্ট রসিদ
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 border-b border-emerald-900 whitespace-nowrap">
+                        শিক্ষার্থীর নাম ও প্রতিষ্ঠান
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-center border-b border-emerald-900 whitespace-nowrap">
+                        শ্রেণি
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 border-b border-emerald-900 whitespace-nowrap">
+                        অভিভাবক ফোন
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-center border-b border-emerald-900 whitespace-nowrap">
+                        স্ট্যাটাস
+                      </th>
+                      <th className="sticky top-0 z-30 bg-emerald-950 py-3.5 px-3 text-right border-b border-emerald-900 whitespace-nowrap">
+                        যাচাই ও অ্যাকশন
+                      </th>
+                    </tr>
+
+                    {/* Row 2: Frozen Horizontal Range Slider & Buttons Directly Under the Titles */}
+                    <tr className="bg-emerald-900 text-white">
+                      <th colSpan={9} className="sticky top-[43px] z-30 bg-emerald-900 px-3 py-2 border-b-2 border-emerald-700 shadow-sm font-normal">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-amber-300 flex items-center gap-1 text-[11px]">
+                              <SlidersHorizontal className="w-3.5 h-3.5" />
+                              <span>ডানে-বামে সরান:</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => scrollTable(-250)}
+                              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg border border-emerald-700 font-bold flex items-center gap-1 transition shadow-sm"
+                              title="বামে স্ক্রল করুন"
+                            >
+                              <ChevronLeft className="w-4 h-4 text-amber-300" />
+                              <span>বামে</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => scrollTable(250)}
+                              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg border border-emerald-700 font-bold flex items-center gap-1 transition shadow-sm"
+                              title="ডানে স্ক্রল করুন"
+                            >
+                              <span>ডানে</span>
+                              <ChevronRight className="w-4 h-4 text-amber-300" />
+                            </button>
+                          </div>
+
+                          {/* Range Slider Pinned In Frozen Header */}
+                          <div className="flex-1 max-w-xs mx-2 flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="0"
+                              max={maxScrollWidth || 450}
+                              value={tableScrollLeft}
+                              onChange={(e) => scrollToPosition(Number(e.target.value))}
+                              className="w-full h-2 bg-emerald-950 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                              title="ডানে-বামে ড্র্যাগ করে টেবিল মুভ করুন"
+                            />
+                          </div>
+
+                          {/* Quick Column Jump Pills */}
+                          <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
+                            <span className="text-emerald-300 text-[10px]">কুইক জাম্প:</span>
+                            <button
+                              type="button"
+                              onClick={() => scrollToPosition(0)}
+                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
+                            >
+                              রেজি ও রোল
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => scrollToPosition(260)}
+                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
+                            >
+                              ছবি ও রসিদ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => scrollToPosition(520)}
+                              className="px-2 py-0.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 rounded font-semibold"
+                            >
+                              নাম ও শ্রেণি
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => scrollToPosition(850)}
+                              className="px-2.5 py-0.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold rounded shadow"
+                            >
+                              অ্যাকশন ও এডমিট
+                            </button>
+                          </div>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
+
                   <tbody className="divide-y divide-gray-100 bg-white">
                     {loadingSubmissions ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-gray-400">
+                        <td colSpan={9} className="py-12 text-center text-gray-400">
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
                             <span>ডাটা লোড হচ্ছে...</span>
@@ -1825,19 +1853,28 @@ export default function AdminDashboardPage() {
                       </tr>
                     ) : submissions.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-gray-400">
+                        <td colSpan={9} className="py-12 text-center text-gray-400">
                           কোনো আবেদনকারী পাওয়া যায়নি।
                         </td>
                       </tr>
                     ) : (
                       submissions.map((s, idx) => (
                         <tr key={idx} className="hover:bg-emerald-50/40 transition">
-                          <td className="py-2.5 px-3">
-                            <div className="font-mono font-bold text-emerald-900">{s.regNo}</div>
-                            <div className="font-mono text-[11px] font-semibold text-amber-700">
-                              {s.rollNumber ? `রোল: ${s.rollNumber}` : "রোল নাই"}
+                          {/* Col 1: Registration Number */}
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <div className="font-mono font-bold text-emerald-950 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-lg text-xs inline-block">
+                              {s.regNo}
                             </div>
                           </td>
+
+                          {/* Col 2: Roll Number */}
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                            <div className="font-mono font-extrabold text-amber-950 bg-amber-100 border border-amber-400 px-3 py-1 rounded-lg text-xs shadow-xs inline-block">
+                              {s.rollNumber ? s.rollNumber : "রোল নাই"}
+                            </div>
+                          </td>
+
+                          {/* Col 3: Student Photo */}
                           <td className="py-2.5 px-3 text-center">
                             {s.photoUrl && s.photoUrl !== "ছবি সংরক্ষিত" ? (
                               <button
@@ -1863,6 +1900,8 @@ export default function AdminDashboardPage() {
                               </div>
                             )}
                           </td>
+
+                          {/* Col 4: Payment Screenshot */}
                           <td className="py-2.5 px-3 text-center">
                             {s.payShotUrl && s.payShotUrl !== "পেমেন্ট প্রমাণপত্র সংরক্ষিত" ? (
                               <button
@@ -1892,13 +1931,25 @@ export default function AdminDashboardPage() {
                               </div>
                             )}
                           </td>
+
+                          {/* Col 5: Name & Institution */}
                           <td className="py-2.5 px-3">
                             <div className="font-bold text-gray-900">{s.name}</div>
-                            <div className="text-[11px] text-gray-500 truncate max-w-[150px]">{s.institution}</div>
+                            <div className="text-[11px] text-gray-500 truncate max-w-[170px]">{s.institution}</div>
                           </td>
-                          <td className="py-2.5 px-3 font-medium text-emerald-800">{s.studentClass}</td>
-                          <td className="py-2.5 px-3 font-mono">{s.guardianPhone}</td>
-                          <td className="py-2.5 px-3">
+
+                          {/* Col 6: Class */}
+                          <td className="py-2.5 px-3 font-medium text-emerald-800 text-center whitespace-nowrap">
+                            {s.studentClass}
+                          </td>
+
+                          {/* Col 7: Guardian Phone */}
+                          <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                            {s.guardianPhone}
+                          </td>
+
+                          {/* Col 8: Status */}
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                 s.status === "Approved" || s.status === "অনুমোদিত"
@@ -1909,7 +1960,9 @@ export default function AdminDashboardPage() {
                               {s.status}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-right">
+
+                          {/* Col 9: Action Buttons */}
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => setSelectedStudent(s)}
@@ -1948,6 +2001,62 @@ export default function AdminDashboardPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* STICKY BOTTOM FLOATING HORIZONTAL CONTROLS (Always visible at display bottom) */}
+              <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border border-emerald-500 rounded-xl p-2.5 shadow-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-950 flex items-center gap-1 text-[11px]">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>ডিসপ্লের নিচের স্ক্রলবার:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollTable(-250)}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg border border-gray-300 font-bold flex items-center gap-1 transition shadow-sm"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-emerald-700" />
+                    <span>বামে সরান</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollTable(250)}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg border border-gray-300 font-bold flex items-center gap-1 transition shadow-sm"
+                  >
+                    <span>ডানে সরান</span>
+                    <ChevronRight className="w-4 h-4 text-emerald-700" />
+                  </button>
+                </div>
+
+                {/* Bottom Range Slider */}
+                <div className="flex-1 max-w-xs mx-2 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max={maxScrollWidth || 450}
+                    value={tableScrollLeft}
+                    onChange={(e) => scrollToPosition(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                    title="ডিসপ্লে নিচ থেকে ডানে-বামে ড্র্যাগ করে টেবিল দেখুন"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(0)}
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold border border-gray-200"
+                  >
+                    ⏮ শুরুতে
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToPosition(850)}
+                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold shadow"
+                  >
+                    অ্যাকশন কলাম ⏭
+                  </button>
+                </div>
               </div>
 
               {/* Pagination */}
