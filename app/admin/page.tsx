@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Settings,
   Bell,
+  User,
   Users,
   Award,
   FileText,
@@ -63,6 +64,7 @@ export default function AdminDashboardPage() {
   const [subTotalPages, setSubTotalPages] = useState(1);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [savingStudent, setSavingStudent] = useState(false);
 
   // Pages State
   const [pages, setPages] = useState<any[]>([]);
@@ -271,6 +273,31 @@ export default function AdminDashboardPage() {
       }
     } catch {
       showToast("আপডেট করা যায়নি", "error");
+    }
+  };
+
+  // Save Full Student Corrections to Google Sheets
+  const handleSaveStudentCorrections = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedStudent) return;
+    try {
+      setSavingStudent(true);
+      const res = await fetch("/api/admin/submissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedStudent),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast("শিক্ষার্থীর সমস্ত তথ্য গুগল স্প্রেডশিটে সফলভাবে আপডেট হয়েছে!");
+        fetchSubmissions(subPage);
+      } else {
+        showToast(d.message || "সংরক্ষণ ব্যর্থ হয়েছে", "error");
+      }
+    } catch {
+      showToast("সার্ভার এরর", "error");
+    } finally {
+      setSavingStudent(false);
     }
   };
 
@@ -1328,176 +1355,311 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Modal: Full Student & Payment Verification */}
+      {/* Modal: Full Student & Payment Verification & EDIT Suite */}
       {selectedStudent && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-5 my-8">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl space-y-6 my-8 max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b pb-4 shrink-0">
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-gray-900">
-                  শিক্ষার্থী ও পেমেন্ট তথ্য যাচাই
-                </h3>
-                <p className="text-xs text-emerald-700 font-mono">
-                  রেজি: {selectedStudent.regNo} {selectedStudent.rollNumber ? `• রোল: ${selectedStudent.rollNumber}` : ""}
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                    শিক্ষার্থী তথ্য ও সংশোধন ফরম (Full Details & Edit)
+                  </h3>
+                </div>
+                <p className="text-xs text-emerald-700 font-mono mt-0.5">
+                  রেজি: <span className="font-bold">{selectedStudent.regNo}</span> • বর্তমান রোল:{" "}
+                  <span className="font-bold text-amber-700">{selectedStudent.rollNumber || "নাই"}</span>
                 </p>
               </div>
               <button
                 onClick={() => setSelectedStudent(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Images: Photo & Payment Receipt Side-by-Side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-              {/* Student Photo */}
-              <div className="flex flex-col items-center text-center">
-                <span className="text-xs font-bold text-gray-700 mb-2">শিক্ষার্থীর ছবি</span>
-                <div className="w-40 h-48 bg-white rounded-xl border-2 border-emerald-400 shadow-md overflow-hidden flex items-center justify-center relative group">
-                  {selectedStudent.photoUrl && selectedStudent.photoUrl !== "ছবি সংরক্ষিত" ? (
-                    <img
-                      src={formatImageUrl(selectedStudent.photoUrl)}
-                      alt="Student"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="text-xs text-gray-400 p-2">ছবি পাওয়া যায়নি</div>
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSaveStudentCorrections} className="space-y-6 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Images Preview Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                {/* Student Photo */}
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-xs font-bold text-gray-700 mb-2">শিক্ষার্থীর ছবি</span>
+                  <div className="w-36 h-44 bg-white rounded-xl border-2 border-emerald-400 shadow overflow-hidden flex items-center justify-center relative">
+                    {selectedStudent.photoUrl && selectedStudent.photoUrl !== "ছবি সংরক্ষিত" ? (
+                      <img
+                        src={formatImageUrl(selectedStudent.photoUrl)}
+                        alt="Student"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-400 p-2">ছবি পাওয়া যায়নি</div>
+                    )}
+                  </div>
+                  {selectedStudent.photoUrl && selectedStudent.photoUrl.startsWith("http") && (
+                    <a
+                      href={selectedStudent.photoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-emerald-700 hover:underline mt-1.5 flex items-center gap-1 font-semibold"
+                    >
+                      <span>গুগল ড্রাইভ মূল ছবি খুলুন</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                 </div>
-                {selectedStudent.photoUrl && selectedStudent.photoUrl.startsWith("http") && (
-                  <a
-                    href={selectedStudent.photoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] text-emerald-700 hover:underline mt-1.5 flex items-center gap-1"
-                  >
-                    <span>গুগল ড্রাইভ মূল ছবি</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
 
-              {/* Payment Screenshot */}
-              <div className="flex flex-col items-center text-center">
-                <span className="text-xs font-bold text-gray-700 mb-2">বিকাশ পেমেন্ট রসিদ / স্ক্রিনশট</span>
-                <div className="w-40 h-48 bg-white rounded-xl border-2 border-amber-400 shadow-md overflow-hidden flex items-center justify-center relative group">
-                  {selectedStudent.payShotUrl && selectedStudent.payShotUrl !== "পেমেন্ট প্রমাণপত্র সংরক্ষিত" ? (
-                    <img
-                      src={formatImageUrl(selectedStudent.payShotUrl)}
-                      alt="Payment Screenshot"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="text-xs text-gray-400 p-2">স্ক্রিনশট পাওয়া যায়নি</div>
+                {/* Payment Screenshot */}
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-xs font-bold text-gray-700 mb-2">বিকাশ পেমেন্ট রসিদ / স্ক্রিনশট</span>
+                  <div className="w-36 h-44 bg-white rounded-xl border-2 border-amber-400 shadow overflow-hidden flex items-center justify-center relative">
+                    {selectedStudent.payShotUrl && selectedStudent.payShotUrl !== "পেমেন্ট প্রমাণপত্র সংরক্ষিত" ? (
+                      <img
+                        src={formatImageUrl(selectedStudent.payShotUrl)}
+                        alt="Payment Screenshot"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-400 p-2">স্ক্রিনশট পাওয়া যায়নি</div>
+                    )}
+                  </div>
+                  {selectedStudent.payShotUrl && selectedStudent.payShotUrl.startsWith("http") && (
+                    <a
+                      href={selectedStudent.payShotUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-amber-700 hover:underline mt-1.5 flex items-center gap-1 font-semibold"
+                    >
+                      <span>গুগল ড্রাইভ মূল রসিদ খুলুন</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                 </div>
-                {selectedStudent.payShotUrl && selectedStudent.payShotUrl.startsWith("http") && (
+              </div>
+
+              {/* Editable Fields: Section 1 - Personal & Exam Details */}
+              <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200 space-y-4">
+                <div className="font-bold text-emerald-900 border-b pb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-emerald-700" />
+                  <span>১. শিক্ষার্থীর ব্যক্তিগত ও পরীক্ষার তথ্য</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">শিক্ষার্থীর পুরো নাম *</label>
+                    <input
+                      type="text"
+                      required
+                      value={selectedStudent.name || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">শ্রেণি (Class) *</label>
+                    <select
+                      value={selectedStudent.studentClass || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, studentClass: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    >
+                      <option value="৪র্থ">৪র্থ শ্রেণি</option>
+                      <option value="৫ম">৫ম শ্রেণি</option>
+                      <option value="৬ষ্ঠ">৬ষ্ঠ শ্রেণি</option>
+                      <option value="৭ম">৭ম শ্রেণি</option>
+                      <option value="৮ম">৮ম শ্রেণি</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">রোল নম্বর (Roll No)</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.rollNumber || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, rollNumber: e.target.value })}
+                      placeholder="যেমন: ১০৫০১"
+                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono font-bold text-amber-800 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">লিঙ্গ (Gender)</label>
+                    <select
+                      value={selectedStudent.gender || "ছাত্র"}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, gender: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    >
+                      <option value="ছাত্র">ছাত্র</option>
+                      <option value="ছাত্রী">ছাত্রী</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">জন্ম তারিখ (DOB)</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.dob || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, dob: e.target.value })}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">অনুমোদন অবস্থা (Status)</label>
+                    <select
+                      value={selectedStudent.status || "পেন্ডিং"}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, status: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    >
+                      <option value="অনুমোদিত">অনুমোদিত (Approved)</option>
+                      <option value="পেন্ডিং">পেন্ডিং (Pending)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields: Section 2 - Family & School */}
+              <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200 space-y-4">
+                <div className="font-bold text-emerald-900 border-b pb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="w-4 h-4 text-emerald-700" />
+                  <span>২. পারিবারিক ও শিক্ষা প্রতিষ্ঠানের তথ্য</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">পিতার নাম</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.fatherName || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, fatherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">মাতার নাম</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.motherName || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, motherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">শিক্ষা প্রতিষ্ঠান / বিদ্যালয়</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.institution || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, institution: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields: Section 3 - Contact & Payment */}
+              <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200 space-y-4">
+                <div className="font-bold text-emerald-900 border-b pb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-4 h-4 text-emerald-700" />
+                  <span>৩. যোগাযোগ ও বিকাশ পেমেন্ট তথ্য</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">অভিভাবক ফোন নম্বর *</label>
+                    <input
+                      type="text"
+                      required
+                      value={selectedStudent.guardianPhone || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, guardianPhone: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg font-mono focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold text-emerald-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">প্রধান শিক্ষক ফোন নম্বর</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.principalPhone || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, principalPhone: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg font-mono focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">প্রেরক বিকাশ নম্বর *</label>
+                    <input
+                      type="text"
+                      required
+                      value={selectedStudent.senderBkash || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, senderBkash: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg font-mono focus:ring-2 focus:ring-amber-500 outline-none text-xs font-bold text-amber-900"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-gray-700 font-bold mb-1">ইমেইল ঠিকানা (ঐচ্ছিক)</label>
+                    <input
+                      type="email"
+                      value={selectedStudent.email || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-1">পরীক্ষা কেন্দ্র</label>
+                    <input
+                      type="text"
+                      value={selectedStudent.examCenter || ""}
+                      onChange={(e) => setSelectedStudent({ ...selectedStudent, examCenter: e.target.value })}
+                      placeholder="আম্বরখানা গার্লস স্কুল এন্ড কলেজ"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Action Footer */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t sticky bottom-0 bg-white">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="submit"
+                    disabled={savingStudent}
+                    className="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-md flex items-center justify-center gap-2 transition disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{savingStudent ? "গুগল শিটে সেভ হচ্ছে..." : "💾 সমস্ত সংশোধন সংরক্ষণ করুন"}</span>
+                  </button>
+
                   <a
-                    href={selectedStudent.payShotUrl}
+                    href={`/?tab=admit&reg=${selectedStudent.regNo}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-amber-700 hover:underline mt-1.5 flex items-center gap-1"
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 transition"
                   >
-                    <span>গুগল ড্রাইভ মূল রসিদ</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <span>এডমিট কার্ড</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Student Full Info Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 p-4 rounded-xl border border-gray-200">
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">শিক্ষার্থীর নাম</span>
-                <span className="font-bold text-gray-900">{selectedStudent.name}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">শ্রেণি ও লিঙ্গ</span>
-                <span className="font-semibold text-gray-800">
-                  {selectedStudent.studentClass} ({selectedStudent.gender || "ছাত্র"})
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">পিতার নাম</span>
-                <span className="text-gray-800">{selectedStudent.fatherName || "—"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">মাতার নাম</span>
-                <span className="text-gray-800">{selectedStudent.motherName || "—"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">শিক্ষা প্রতিষ্ঠান</span>
-                <span className="text-gray-800">{selectedStudent.institution || "—"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">জন্ম তারিখ</span>
-                <span className="text-gray-800">{selectedStudent.dob || "—"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">অভিভাবক ফোন</span>
-                <span className="font-mono font-bold text-emerald-800">{selectedStudent.guardianPhone || "—"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">বিকাশ প্রেরক নম্বর</span>
-                <span className="font-mono font-bold text-amber-800">{selectedStudent.senderBkash || "—"}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-gray-400 block text-[10px] uppercase font-bold">পরীক্ষা কেন্দ্র ও তারিখ</span>
-                <span className="text-gray-800">
-                  {selectedStudent.examCenter || "আম্বরখানা গার্লস স্কুল"} ({selectedStudent.examDate || "২০ নভেম্বর ২০২৭"})
-                </span>
-              </div>
-            </div>
-
-            {/* Admin Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                {selectedStudent.status !== "Approved" && selectedStudent.status !== "অনুমোদিত" ? (
-                  <button
-                    onClick={() => {
-                      handleUpdateStudent(selectedStudent, "অনুমোদিত");
-                      setSelectedStudent({ ...selectedStudent, status: "অনুমোদিত" });
-                    }}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition"
-                  >
-                    ✓ আবেদন অনুমোদন করুন (Approve)
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      handleUpdateStudent(selectedStudent, "পেন্ডিং");
-                      setSelectedStudent({ ...selectedStudent, status: "পেন্ডিং" });
-                    }}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold rounded-xl text-xs shadow transition"
-                  >
-                    পেন্ডিং করুন
-                  </button>
-                )}
-                <a
-                  href={`/?tab=admit&reg=${selectedStudent.regNo}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 transition"
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudent(null)}
+                  className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl text-xs hover:bg-gray-50 transition"
                 >
-                  <span>এডমিট কার্ড</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                  বন্ধ করুন
+                </button>
               </div>
-
-              <button
-                onClick={() => setSelectedStudent(null)}
-                className="w-full sm:w-auto px-5 py-2 border border-gray-300 text-gray-700 font-semibold rounded-xl text-xs hover:bg-gray-50 transition"
-              >
-                বন্ধ করুন
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}

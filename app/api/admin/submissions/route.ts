@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Determine header mapping dynamically in case columns vary
     const headerRow = rows[0] || [];
     let idxTimestamp = 0;
     let idxReg = 1;
@@ -59,9 +58,12 @@ export async function GET(req: NextRequest) {
       else if (c.includes("father") || c.includes("পিতা")) idxFather = idx;
       else if (c.includes("mother") || c.includes("মাতা")) idxMother = idx;
       else if (c.includes("birth") || c.includes("জন্ম")) idxDob = idx;
+      else if (c.includes("gender") || c.includes("লিঙ্গ")) idxGender = idx;
       else if (c.includes("institution") || c.includes("প্রতিষ্ঠান")) idxInst = idx;
       else if (c.includes("class") || c.includes("শ্রেণী") || c.includes("শ্রেণি")) idxClass = idx;
+      else if (c.includes("principal") || c.includes("প্রধান শিক্ষক")) idxPrincipalPhone = idx;
       else if (c.includes("guardian") || c.includes("অভিভাবক")) idxPhone = idx;
+      else if (c.includes("email") || c.includes("ইমেইল")) idxEmail = idx;
       else if (c.includes("sender") || c.includes("প্রেরক")) idxSenderBkash = idx;
       else if (c.includes("payment") || c.includes("পেমেন্ট")) idxPayShot = idx;
       else if (c.includes("photo") || c.includes("ছবি")) idxPhoto = idx;
@@ -143,27 +145,56 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const { rowIndex, status, rollNumber, examCenter, examDate } = await req.json();
+    const data = await req.json();
+    const { rowIndex } = data;
 
     if (!rowIndex || rowIndex <= 1) {
       return NextResponse.json({ success: false, message: "রো নম্বর অনুপস্থিত" }, { status: 400 });
     }
 
-    // Col C = Roll No
-    if (rollNumber !== undefined) {
-      await updateSheetRange(`Submissions!C${rowIndex}`, [[String(rollNumber)]]);
-    }
-
-    // Col Q = Exam Center, Col R = Exam Date, Col S = Status
-    if (examCenter !== undefined || examDate !== undefined || status !== undefined) {
-      await updateSheetRange(`Submissions!Q${rowIndex}:S${rowIndex}`, [
-        [examCenter || "", examDate || "", status || "অনুমোদিত"],
+    // Check if it's a full student edit or quick status/roll update
+    if (data.name !== undefined) {
+      // Full Student Update: Col B to Col S
+      // B: RegNo, C: Roll, D: Name, E: Father, F: Mother, G: DOB, H: Gender, I: Inst, J: Class,
+      // K: PrincipalPhone, L: GuardianPhone, M: Email, N: SenderBkash, O: PayShot, P: Photo,
+      // Q: Center, R: Date, S: Status
+      await updateSheetRange(`Submissions!B${rowIndex}:S${rowIndex}`, [
+        [
+          data.regNo || "",
+          data.rollNumber || "",
+          data.name || "",
+          data.fatherName || "",
+          data.motherName || "",
+          data.dob || "",
+          data.gender || "ছাত্র",
+          data.institution || "",
+          data.studentClass || "",
+          data.principalPhone || "",
+          data.guardianPhone || "",
+          data.email || "",
+          data.senderBkash || "",
+          data.payShotUrl || "",
+          data.photoUrl || "",
+          data.examCenter || "",
+          data.examDate || "",
+          data.status || "অনুমোদিত",
+        ],
       ]);
+    } else {
+      // Quick status/roll/center update
+      if (data.rollNumber !== undefined) {
+        await updateSheetRange(`Submissions!C${rowIndex}`, [[String(data.rollNumber)]]);
+      }
+      if (data.examCenter !== undefined || data.examDate !== undefined || data.status !== undefined) {
+        await updateSheetRange(`Submissions!Q${rowIndex}:S${rowIndex}`, [
+          [data.examCenter || "", data.examDate || "", data.status || "অনুমোদিত"],
+        ]);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: "শিক্ষার্থীর স্ট্যাটাস ও রোল সফলভাবে আপডেট হয়েছে!",
+      message: "শিক্ষার্থীর সমস্ত তথ্য গুগল স্প্রেডশিটে সফলভাবে আপডেট হয়েছে!",
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
