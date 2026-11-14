@@ -198,7 +198,12 @@ export default function Footer({ onNavClick }: FooterProps) {
       </div>
 
       <div className="border-t border-gray-800 mt-10 pt-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto gap-2">
-        <span>Copyright © 2026 {settings.SiteName}. All Rights Reserved.</span>
+        <span>
+          Copyright © 2026 {settings.SiteName}. All Rights Reserved. •{" "}
+          <a href="/admin" className="text-gray-400 hover:text-emerald-400 transition underline underline-offset-2">
+            অ্যাডমিন প্যানেল
+          </a>
+        </span>
         <span className="flex items-center gap-1 text-gray-400">
           Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for Bangladeshi Students
         </span>
