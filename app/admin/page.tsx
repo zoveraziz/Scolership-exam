@@ -1923,51 +1923,30 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
 
-              {/* Highlighted & Prominent Pagination (পূর্ববর্তী ও পরবর্তী হাইলাইট) */}
+              {/* Pagination (Clean & Simple as originally, with bold typography) */}
               {subTotalPages > 1 && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 rounded-2xl border-2 border-emerald-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span className="text-xs sm:text-sm font-bold text-emerald-950">
-                      পৃষ্ঠা <span className="text-emerald-800 bg-white px-2.5 py-0.5 rounded-lg border border-emerald-300 font-mono text-sm shadow-xs">{subPage}</span> এর{" "}
-                      <span className="text-gray-700 font-mono">{subTotalPages}</span>
-                    </span>
-                    <span className="text-xs text-gray-500 font-medium ml-1">
-                      (মোট <span className="font-bold text-gray-800">{totalSubmissions}</span> জন আবেদনকারী)
-                    </span>
-                  </div>
-
+                <div className="flex items-center justify-between text-xs text-gray-700 font-semibold pt-3 border-t border-gray-100">
+                  <span>
+                    পৃষ্ঠা <span className="font-bold text-gray-900">{subPage}</span> এর{" "}
+                    <span className="font-bold text-gray-900">{subTotalPages}</span> (মোট{" "}
+                    <span className="font-bold text-gray-900">{totalSubmissions}</span> জন আবেদনকারী)
+                  </span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       disabled={subPage <= 1}
                       onClick={() => fetchSubmissions(subPage - 1)}
-                      className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow-sm ${
-                        subPage <= 1
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300"
-                          : "bg-white hover:bg-emerald-700 text-emerald-800 hover:text-white border-2 border-emerald-400 hover:border-emerald-700 active:scale-95 shadow-xs"
-                      }`}
+                      className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
-                      <ChevronLeft className="w-4 h-4" />
-                      <span>পূর্ববর্তী পৃষ্ঠা</span>
+                      পূর্ববর্তী
                     </button>
-
-                    <div className="px-3 py-1.5 bg-emerald-800 text-white font-mono font-bold text-xs rounded-xl shadow-inner">
-                      {subPage} / {subTotalPages}
-                    </div>
-
                     <button
                       type="button"
                       disabled={subPage >= subTotalPages}
                       onClick={() => fetchSubmissions(subPage + 1)}
-                      className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow-sm ${
-                        subPage >= subTotalPages
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300"
-                          : "bg-emerald-700 hover:bg-emerald-800 text-white border-2 border-emerald-700 hover:border-emerald-800 active:scale-95 shadow-md shadow-emerald-700/20"
-                      }`}
+                      className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
-                      <span>পরবর্তী পৃষ্ঠা</span>
-                      <ChevronRight className="w-4 h-4" />
+                      পরবর্তী
                     </button>
                   </div>
                 </div>
