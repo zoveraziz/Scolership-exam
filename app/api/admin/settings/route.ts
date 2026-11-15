@@ -10,11 +10,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
+  const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
+
   try {
     const rows = await getSheetData("Settings");
     const settings: Record<string, string> = {};
 
-    if (rows) {
+    if (rows && rows.length > 0) {
       rows.forEach((row) => {
         if (row && row[0]) {
           settings[String(row[0]).trim()] = row[1] !== undefined ? String(row[1]).trim() : "";
@@ -22,8 +24,43 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Fallback to Apps Script if Service Account credentials are not yet set in Vercel
+    if (Object.keys(settings).length === 0 && scriptUrl && scriptUrl.startsWith("http")) {
+      try {
+        const response = await fetch(`${scriptUrl}?action=getSettings`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            return NextResponse.json({ success: true, data: result.data, source: "apps_script_fallback" });
+          }
+        }
+      } catch (scriptErr) {
+        console.warn("Apps Script settings fallback error:", scriptErr);
+      }
+    }
+
     return NextResponse.json({ success: true, data: settings });
   } catch (error: any) {
+    // If Service Account throws an error, try Apps Script
+    if (scriptUrl && scriptUrl.startsWith("http")) {
+      try {
+        const response = await fetch(`${scriptUrl}?action=getSettings`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            return NextResponse.json({ success: true, data: result.data, source: "apps_script_fallback" });
+          }
+        }
+      } catch (scriptErr) {
+        console.warn("Apps Script settings fallback error:", scriptErr);
+      }
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

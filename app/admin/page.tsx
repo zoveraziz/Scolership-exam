@@ -674,9 +674,11 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-emerald-200 hover:text-white"
+              className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-emerald-100 hover:text-white text-xs font-bold border border-emerald-700 transition"
+              title="মেনু খুলুন/বন্ধ করুন"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              <span>{mobileMenuOpen ? "বন্ধ" : "মেনু তালিকা"}</span>
             </button>
             <div className="w-9 h-9 bg-emerald-700 border border-emerald-500 rounded-lg flex items-center justify-center font-bold text-amber-300 shadow">
               <Sparkles className="w-5 h-5" />
@@ -883,6 +885,74 @@ export default function AdminDashboardPage() {
 
         {/* Content Area */}
         <main className="flex-1 min-w-0">
+          {/* Mobile Horizontal Tabs (Always accessible on smaller screens) */}
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "overview" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              ওভারভিউ
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "settings" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              সাইট সেটিংস
+            </button>
+            <button
+              onClick={() => setActiveTab("submissions")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "submissions" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              আবেদনকারী ({totalSubmissions})
+            </button>
+            <button
+              onClick={() => setActiveTab("controllers")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "controllers" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              পরীক্ষা নিয়ন্ত্রক
+            </button>
+            <button
+              onClick={() => setActiveTab("messages")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "messages" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              গুণীজন বাণী
+            </button>
+            <button
+              onClick={() => setActiveTab("committee")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "committee" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              কমিটি
+            </button>
+            <button
+              onClick={() => setActiveTab("notices")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "notices" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              নোটিশ বোর্ড
+            </button>
+            <button
+              onClick={() => setActiveTab("pages")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                activeTab === "pages" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+              }`}
+            >
+              পেজ ও ড্রপডাউন
+            </button>
+          </div>
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <div className="space-y-6">
@@ -1311,6 +1381,140 @@ export default function AdminDashboardPage() {
                         value={settings.HeroSubtitle || ""}
                         onChange={(e) => setSettings({ ...settings, HeroSubtitle: e.target.value })}
                         className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CARD 6: WEBSITE NAVIGATION MENUS (ওয়েবসাইট মেনু টেক্সট ও নেভিগেশন) */}
+                <div className="bg-emerald-50/50 rounded-xl p-5 border border-emerald-300 space-y-4">
+                  <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                    <div className="flex items-center gap-2 font-bold text-emerald-950 text-sm">
+                      <Menu className="w-4 h-4 text-emerald-700" />
+                      <span>৬. মূল ওয়েবসাইট মেনু টেক্সট পরিবর্তন (Website Menus Customization)</span>
+                    </div>
+                    <span className="text-[11px] text-emerald-800 font-medium bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                      ৯টি প্রধান নেভিগেশন মেনু
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    ওয়েবসাইটের হেডারের প্রতিটি মেনুর নাম আপনার পছন্দমতো বাংলা বা ইংরেজিতে পরিবর্তন করতে পারবেন (যেমন: 'হোম' এর বদলে 'প্রধান পাতা' বা 'Home'):
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ১. হোম মেনু (MenuHome)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuHome || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuHome: e.target.value })}
+                        placeholder="ডিফল্ট: হোম"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ২. নোটিশ বোর্ড মেনু (MenuNotice)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuNotice || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuNotice: e.target.value })}
+                        placeholder="ডিফল্ট: নোটিশ বোর্ড"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৩. নিয়মাবলী ও সিলেবাস (MenuRules)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuRules || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuRules: e.target.value })}
+                        placeholder="ডিফল্ট: নিয়মাবলী ও সিলেবাস"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৪. অনলাইন রেজিস্ট্রেশন (MenuRegister)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuRegister || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuRegister: e.target.value })}
+                        placeholder="ডিফল্ট: অনলাইন রেজিস্ট্রেশন"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৫. এডমিট কার্ড মেনু (MenuAdmit)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuAdmit || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuAdmit: e.target.value })}
+                        placeholder="ডিফল্ট: এডমিট কার্ড"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৬. ফলাফল মেনু (MenuResult)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuResult || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuResult: e.target.value })}
+                        placeholder="ডিফল্ট: ফলাফল"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৭. আমাদের সম্পর্কে (MenuAbout)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuAbout || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuAbout: e.target.value })}
+                        placeholder="ডিফল্ট: আমাদের সম্পর্কে"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৮. গুণীজনের বাণী (MenuMessages)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuMessages || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuMessages: e.target.value })}
+                        placeholder="ডিফল্ট: গুণীজনের বাণী"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        ৯. যোগাযোগ মেনু (MenuContact)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.MenuContact || ""}
+                        onChange={(e) => setSettings({ ...settings, MenuContact: e.target.value })}
+                        placeholder="ডিফল্ট: যোগাযোগ"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
                       />
                     </div>
                   </div>

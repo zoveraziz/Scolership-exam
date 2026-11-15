@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
+  const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
+
   try {
     const rows = await getSheetData("Notices");
     const notices: any[] = [];
@@ -30,6 +32,27 @@ export async function GET(req: NextRequest) {
           });
         }
       }
+    }
+
+    if (notices.length === 0 && scriptUrl && scriptUrl.startsWith("http")) {
+      try {
+        const res = await fetch(`${scriptUrl}?action=getNotices`, { cache: "no-store" });
+        const resData = await res.json();
+        if (resData.success && resData.data && resData.data.length > 0) {
+          return NextResponse.json({
+            success: true,
+            data: resData.data.map((n: any, idx: number) => ({
+              rowIndex: idx + 2,
+              sl: String(idx + 1),
+              date: n.date,
+              title: n.title,
+              category: n.category || "সাধারণ",
+              content: n.content,
+              fileUrl: n.fileUrl || "",
+            })),
+          });
+        }
+      } catch (e) {}
     }
 
     return NextResponse.json({ success: true, data: notices });

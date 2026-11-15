@@ -17,10 +17,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || process.env.GOOGLE_SCRIPT_URL;
     const tabName = await getExactTabName("Committee");
     const rows = await getSheetData(tabName);
 
     if (!rows || rows.length <= 1) {
+      if (scriptUrl && scriptUrl.startsWith("http")) {
+        try {
+          const res = await fetch(`${scriptUrl}?action=getCommittee`, { cache: "no-store" });
+          const resData = await res.json();
+          if (resData.success && resData.data && resData.data.length > 0) {
+            return NextResponse.json({
+              success: true,
+              data: resData.data.map((c: any, idx: number) => ({
+                rowIndex: idx + 2,
+                order: String(c.order || idx + 1),
+                name: c.name,
+                role: c.role,
+                designation: c.designation,
+                photoUrl: c.photo,
+              })),
+            });
+          }
+        } catch (e) {}
+      }
       return NextResponse.json({ success: true, data: [] });
     }
 
