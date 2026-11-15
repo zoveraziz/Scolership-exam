@@ -276,7 +276,34 @@ function doGet(e) {
     }
 
     // 4. Controller & Signature Lookup (সরাসরি পরীক্ষা নিয়ন্ত্রকের স্বাক্ষর ও নাম খোঁজা)
-    if (action === "getControllers" || action === "getController") {
+    if (action === "getControllers" || action === "getController" || action === "getAllControllers") {
+      if (params.all === "true" || action === "getAllControllers") {
+        var possibleNames = ["controlers", "Controllers", "নিয়ন্ত্রক", "নিয়ন্ত্রকগণ", "Signatures", "স্বাক্ষর", "Controller", "পরীক্ষা নিয়ন্ত্রক", "Signatory"];
+        var cSheet = null;
+        for (var p = 0; p < possibleNames.length; p++) {
+          cSheet = ss.getSheetByName(possibleNames[p]);
+          if (cSheet && cSheet.getLastRow() > 1) break;
+        }
+        if (cSheet && cSheet.getLastRow() > 1) {
+          var cRows = cSheet.getDataRange().getValues();
+          var list = [];
+          for (var i = 1; i < cRows.length; i++) {
+            var row = cRows[i];
+            if (row[2] || row[0] || row[1]) {
+              list.push({
+                rowIndex: i + 1,
+                startRoll: String(row[0] || "").trim(),
+                endRoll: String(row[1] || "").trim(),
+                name: String(row[2] || "").trim(),
+                signatureUrl: String(row[3] || "").trim(),
+                phone: String(row[4] || "").trim()
+              });
+            }
+          }
+          return createJsonResponse({ success: true, count: list.length, data: list });
+        }
+      }
+
       var rollVal = params.roll || params.id || query || "10524";
       var ctrlData = getControllerForRoll(ss, rollVal);
       return createJsonResponse({ success: true, found: true, data: ctrlData });

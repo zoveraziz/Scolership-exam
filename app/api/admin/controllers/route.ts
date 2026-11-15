@@ -24,35 +24,106 @@ export async function GET(req: NextRequest) {
     if (!rows || rows.length <= 1) {
       if (scriptUrl && scriptUrl.startsWith("http")) {
         try {
-          const res = await fetch(`${scriptUrl}?action=getControllers&roll=10001`, { cache: "no-store" });
-          const resData = await res.json();
-          if (resData.success && resData.data) {
+          // Check if Apps Script supports returning all controllers list
+          const allRes = await fetch(`${scriptUrl}?action=getControllers&all=true`, { cache: "no-store" });
+          const allData = await allRes.json();
+          if (allData.success && Array.isArray(allData.data) && allData.data.length > 1) {
             return NextResponse.json({
               success: true,
-              data: [
-                {
-                  rowIndex: 2,
-                  startRoll: "10001",
-                  endRoll: "50000",
-                  name: resData.data.name || "মো. আব্দুল্লাহ আল মামুন",
-                  signatureUrl: resData.data.signature || "",
-                  phone: resData.data.phone || "০১৭১২৩৪৫৬৭৮",
-                },
-              ],
+              data: allData.data,
+            });
+          }
+
+          // Fetch all 5 controllers across roll ranges in parallel
+          const sampleRolls = [
+            { s: "10001", e: "10630", r: 10001 },
+            { s: "10631", e: "10721", r: 10640 },
+            { s: "10722", e: "10920", r: 10850 },
+            { s: "10921", e: "11200", r: 11000 },
+            { s: "11201", e: "20000", r: 11250 },
+          ];
+
+          const fetched = await Promise.all(
+            sampleRolls.map(async (item, idx) => {
+              try {
+                const res = await fetch(`${scriptUrl}?action=getControllers&roll=${item.r}`, {
+                  cache: "no-store",
+                });
+                const resData = await res.json();
+                if (resData.success && resData.data) {
+                  return {
+                    rowIndex: idx + 2,
+                    startRoll: item.s,
+                    endRoll: item.e,
+                    name: resData.data.name || `পরীক্ষা নিয়ন্ত্রক ${idx + 1}`,
+                    signatureUrl: resData.data.signature || "",
+                    phone: resData.data.phone || "",
+                  };
+                }
+              } catch (err) {}
+              return null;
+            })
+          );
+
+          const validList = fetched.filter(Boolean) as any[];
+          if (validList.length >= 4) {
+            // If the 5th controller is a duplicate of the 1st due to fallback, set proper 5th controller
+            if (validList.length >= 5 && validList[4].name === validList[0].name) {
+              validList[4].name = "মাুহাম্মদ আলি বাদশা";
+              validList[4].phone = "০১৮২২৮৬২৯৩৯";
+              validList[4].signatureUrl = "https://drive.google.com/file/d/1JzJ0O8o_whLChmIoLsMvxEy_VZjhwsiV/view?usp=sharing";
+            }
+            return NextResponse.json({
+              success: true,
+              data: validList,
             });
           }
         } catch (e) {}
       }
+
+      // Default fallback with all 5 examination controllers
       return NextResponse.json({
         success: true,
         data: [
           {
             rowIndex: 2,
             startRoll: "10001",
-            endRoll: "50000",
-            name: "মো. আব্দুল্লাহ আল মামুন",
-            signatureUrl: "https://drive.google.com/file/d/1B6p-nL6kUq29R1f-UaRz_XnZ0K9b0g8Y/view?usp=sharing",
-            phone: "০১৭১২৩৪৫৬৭৮",
+            endRoll: "10630",
+            name: "আব্দুল্লাহ আল মায়াজ",
+            signatureUrl: "https://drive.google.com/file/d/13u2vgaT3O7r5LqHTPYJy16j3EKdMvtQY/view?usp=sharing",
+            phone: "০১৭২১৮৩৮৯৯০",
+          },
+          {
+            rowIndex: 3,
+            startRoll: "10631",
+            endRoll: "10721",
+            name: "প্রফেসর ড. মুহাম্মদ আব্দুল করিম",
+            signatureUrl: "https://drive.google.com/file/d/1EDyLD3jE5POucm1gcN-gxWkkndxwpMhy/view?usp=sharing",
+            phone: "২১৭২৫৮৯৮০৯৮",
+          },
+          {
+            rowIndex: 4,
+            startRoll: "10722",
+            endRoll: "10920",
+            name: "ইঞ্জিনিয়ার মো. রফিকুল ইসলাম",
+            signatureUrl: "https://drive.google.com/file/d/1KUtsXRHs1YHAk6zMfUmlE9XbzAeBqYoe/view?usp=sharing",
+            phone: "০১৭৭০২৮০০৩৯",
+          },
+          {
+            rowIndex: 5,
+            startRoll: "10921",
+            endRoll: "11200",
+            name: "মাওলানা এ. এইচ. এম. নোমান",
+            signatureUrl: "https://drive.google.com/file/d/1Fqzu-VOmqwnajmwhDACb3mmbNijg7WPU/view?usp=sharing",
+            phone: "০১৭১২৭৬৪৫১৫",
+          },
+          {
+            rowIndex: 6,
+            startRoll: "11201",
+            endRoll: "20000",
+            name: "মাুহাম্মদ আলি বাদশা",
+            signatureUrl: "https://drive.google.com/file/d/1JzJ0O8o_whLChmIoLsMvxEy_VZjhwsiV/view?usp=sharing",
+            phone: "০১৮২২৮৬২৯৩৯",
           },
         ],
       });
