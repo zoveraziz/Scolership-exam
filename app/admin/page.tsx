@@ -2127,30 +2127,42 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
 
-              {/* Pagination (Clean & Simple as originally, with bold typography) */}
+              {/* Pagination Bar - Styled to match exact original design with bold typography */}
               {subTotalPages > 1 && (
-                <div className="flex items-center justify-between text-xs text-gray-700 font-semibold pt-3 border-t border-gray-100">
-                  <span>
-                    পৃষ্ঠা <span className="font-bold text-gray-900">{subPage}</span> এর{" "}
-                    <span className="font-bold text-gray-900">{subTotalPages}</span> (মোট{" "}
-                    <span className="font-bold text-gray-900">{totalSubmissions}</span> জন আবেদনকারী)
-                  </span>
+                <div className="bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center text-xs sm:text-sm font-bold text-gray-800">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5 shadow-sm inline-block"></span>
+                    <span>পৃষ্ঠা</span>
+                    <span className="mx-1.5 px-2.5 py-0.5 bg-white border border-gray-300 rounded-lg text-emerald-900 font-extrabold shadow-2xs">
+                      {subPage}
+                    </span>
+                    <span>এর {subTotalPages}</span>
+                    <span className="text-gray-600 font-medium ml-2">
+                      (মোট <strong className="font-extrabold text-gray-900">{totalSubmissions}</strong> জন আবেদনকারী)
+                    </span>
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       disabled={subPage <= 1}
                       onClick={() => fetchSubmissions(subPage - 1)}
-                      className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs flex items-center gap-1 shadow-2xs"
                     >
-                      পূর্ববর্তী
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>পূর্ববর্তী পৃষ্ঠা</span>
                     </button>
+                    <span className="px-3 py-1.5 bg-emerald-950 text-white font-black rounded-xl text-xs shadow-2xs">
+                      {subPage} / {subTotalPages}
+                    </span>
                     <button
                       type="button"
                       disabled={subPage >= subTotalPages}
                       onClick={() => fetchSubmissions(subPage + 1)}
-                      className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition shadow-xs text-xs flex items-center gap-1"
                     >
-                      পরবর্তী
+                      <span>পরবর্তী পৃষ্ঠা</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

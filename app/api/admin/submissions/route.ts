@@ -18,8 +18,45 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
-    const rows = await getSheetData("Submissions");
+    let rows = await getSheetData("Submissions");
+
+    // Apps Script Web App Fallback if direct Google Sheets API fails
     if (!rows || rows.length <= 1) {
+      const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL;
+      if (scriptUrl) {
+        try {
+          const res = await fetch(`${scriptUrl}?action=getSubmissions`, { cache: "no-store" });
+          if (res.ok) {
+            const gasData = await res.json();
+            if (gasData.success && Array.isArray(gasData.data) && gasData.data.length > 0) {
+              let gasItems = gasData.data;
+              if (studentClass) gasItems = gasItems.filter((i: any) => String(i.studentClass || "").toLowerCase() === studentClass.toLowerCase());
+              if (status) gasItems = gasItems.filter((i: any) => String(i.status || "").toLowerCase() === status.toLowerCase());
+              if (search) {
+                gasItems = gasItems.filter((i: any) =>
+                  String(i.regNo || "").toLowerCase().includes(search) ||
+                  String(i.name || "").toLowerCase().includes(search) ||
+                  String(i.guardianPhone || "").toLowerCase().includes(search) ||
+                  String(i.rollNumber || "").toLowerCase().includes(search)
+                );
+              }
+              const total = gasItems.length;
+              const totalPages = Math.ceil(total / limit);
+              const startIndex = (page - 1) * limit;
+              return NextResponse.json({
+                success: true,
+                data: gasItems.slice(startIndex, startIndex + limit),
+                total,
+                page,
+                totalPages,
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Apps script fallback error:", e);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         data: [],

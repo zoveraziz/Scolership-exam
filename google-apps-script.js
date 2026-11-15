@@ -228,6 +228,49 @@ function doGet(e) {
       return createJsonResponse({ success: false, found: false, message: "প্রদত্ত রেজিস্ট্রেশন বা রোল নম্বরে কোনো প্রবেশপত্র পাওয়া যায়নি।" });
     }
 
+    // 2.1 Get All Submissions / Applicants (Admin fallback)
+    if (action === "getSubmissions" || action === "getApplicants" || action === "submissions") {
+      var sSheet = ss.getSheetByName("Submissions");
+      if (!sSheet || sSheet.getLastRow() <= 1) {
+        return createJsonResponse({ success: true, data: [], total: 0 });
+      }
+
+      var allRows = sSheet.getDataRange().getValues();
+      var applicantsList = [];
+      for (var k = 1; k < allRows.length; k++) {
+        var rowItem = allRows[k];
+        if (!rowItem || (!rowItem[1] && !rowItem[3])) continue;
+        applicantsList.push({
+          rowIndex: k + 1,
+          regNo: String(rowItem[1] || ""),
+          rollNumber: String(rowItem[2] || ""),
+          name: String(rowItem[3] || ""),
+          fatherName: String(rowItem[4] || ""),
+          motherName: String(rowItem[5] || ""),
+          dob: String(rowItem[6] || ""),
+          gender: String(rowItem[7] || ""),
+          institution: String(rowItem[8] || ""),
+          studentClass: String(rowItem[9] || ""),
+          principalPhone: String(rowItem[10] || ""),
+          guardianPhone: String(rowItem[11] || ""),
+          email: String(rowItem[12] || ""),
+          senderBkash: String(rowItem[13] || ""),
+          payShotUrl: String(rowItem[14] || ""),
+          photoUrl: String(rowItem[15] || ""),
+          examCenter: String(rowItem[16] || ""),
+          examDate: String(rowItem[17] || ""),
+          status: String(rowItem[18] || "পেন্ডিং"),
+          timestamp: String(rowItem[0] || "")
+        });
+      }
+
+      return createJsonResponse({
+        success: true,
+        data: applicantsList,
+        total: applicantsList.length
+      });
+    }
+
     // 3. Search Result
     if (action === "getResult") {
       var rSheet = ss.getSheetByName("Results");
