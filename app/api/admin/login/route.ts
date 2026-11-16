@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createToken, COOKIE_NAME } from "@/lib/admin-auth";
-import { getSheetData, ensureSheetTab } from "@/lib/google-sheets";
+import { getSheetData } from "@/lib/google-sheets";
+import { normalizePermissions, ALL_PERMISSIONS } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,23 @@ export async function POST(req: NextRequest) {
       username: string;
       name: string;
       role: string;
+      permissions: string[];
     } | null = null;
 
     // 1. Check Google Sheets "Users" tab
     try {
       const rows = await getSheetData("Users");
       if (rows && rows.length > 1) {
+        const header = rows[0] || [];
+        let idxPerms = -1;
+        let idxStatus = -1;
+
+        header.forEach((c: any, idx: number) => {
+          const s = String(c || "").toLowerCase().trim();
+          if (s.includes("perm") || s.includes("অনুমতি")) idxPerms = idx;
+          if (s.includes("status") || s.includes("অবস্থা")) idxStatus = idx;
+        });
+
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i];
           if (!r || !r[0]) continue;
@@ -36,7 +48,12 @@ export async function POST(req: NextRequest) {
           const p = String(r[1] || "").trim();
           const name = String(r[2] || r[0]).trim();
           const role = String(r[3] || "admin").trim().toLowerCase();
-          const status = String(r[6] || "active").trim().toLowerCase();
+
+          const rawStatus = idxStatus !== -1 ? String(r[idxStatus] || "active") : String(r[6] || "active");
+          const status = rawStatus.trim().toLowerCase();
+
+          const rawPerms = idxPerms !== -1 ? String(r[idxPerms] || "") : "";
+          const permissions = normalizePermissions(role, rawPerms);
 
           if (u === cleanUsername) {
             if (p !== cleanPassword) {
@@ -60,6 +77,7 @@ export async function POST(req: NextRequest) {
               username: String(r[0]).trim(),
               name,
               role,
+              permissions,
             };
             break;
           }
@@ -80,6 +98,7 @@ export async function POST(req: NextRequest) {
           username: process.env.ADMIN_USERNAME || "admin",
           name: envName,
           role: "super_admin",
+          permissions: ALL_PERMISSIONS.map((p) => p.key),
         };
       }
     }
@@ -94,7 +113,8 @@ export async function POST(req: NextRequest) {
     const token = createToken(
       authenticatedUser.username,
       authenticatedUser.name,
-      authenticatedUser.role
+      authenticatedUser.role,
+      authenticatedUser.permissions
     );
 
     const response = NextResponse.json({
@@ -104,6 +124,7 @@ export async function POST(req: NextRequest) {
         username: authenticatedUser.username,
         name: authenticatedUser.name,
         role: authenticatedUser.role,
+        permissions: authenticatedUser.permissions,
       },
     });
 

@@ -7,7 +7,14 @@ import {
   deleteSheetRow,
   ensureSheetTab,
 } from "@/lib/google-sheets";
-import { ROLES, UserRole } from "@/lib/rbac";
+import {
+  ROLES,
+  ALL_PERMISSIONS,
+  UserRole,
+  normalizePermissions,
+  getDefaultPermissions,
+  PermissionKey,
+} from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +23,7 @@ const USERS_HEADERS = [
   "Password",
   "Name",
   "Role",
+  "Permissions",
   "Phone",
   "Email",
   "Status",
@@ -27,6 +35,7 @@ const DEFAULT_ADMIN_USER = {
   password: process.env.ADMIN_PASSWORD || "rhkl@Admin2026",
   name: process.env.ADMIN_NAME || "রেজাউল হাসান কয়েস লোদী ফাউন্ডেশন অ্যাডমিন",
   role: "super_admin",
+  permissions: "all",
   phone: process.env.NEXT_PUBLIC_HOTLINE || "০১৮২২৮৬২৯৩৯",
   email: process.env.NEXT_PUBLIC_EMAIL || "mabadshasyl@gmail.com",
   status: "active",
@@ -34,29 +43,67 @@ const DEFAULT_ADMIN_USER = {
 };
 
 /**
- * Helper to ensure Users tab exists and has at least the default admin seeded
+ * Ensures Users tab exists and has the standard 9-column header with Permissions.
  */
-async function getOrSeedUsers(): Promise<any[][]> {
+async function getOrSeedUsers(): Promise<{ rows: any[][]; colMap: Record<string, number> }> {
   await ensureSheetTab("Users", USERS_HEADERS);
   let rows = await getSheetData("Users");
 
   if (!rows || rows.length <= 1) {
-    // Seed initial super admin row
     const defaultRow = [
       DEFAULT_ADMIN_USER.username,
       DEFAULT_ADMIN_USER.password,
       DEFAULT_ADMIN_USER.name,
       DEFAULT_ADMIN_USER.role,
+      DEFAULT_ADMIN_USER.permissions,
       DEFAULT_ADMIN_USER.phone,
       DEFAULT_ADMIN_USER.email,
       DEFAULT_ADMIN_USER.status,
       DEFAULT_ADMIN_USER.createdAt,
     ];
+    await updateSheetRange("Users!A1:I1", [USERS_HEADERS]);
     await appendSheetRow("Users", defaultRow);
     rows = [USERS_HEADERS, defaultRow];
   }
 
-  return rows;
+  // Ensure header has Permissions
+  const header = rows[0] || [];
+  const hasPermHeader = header.some((c: any) =>
+    String(c || "").toLowerCase().includes("perm")
+  );
+
+  if (!hasPermHeader) {
+    // Upgrade header in Google Sheets
+    await updateSheetRange("Users!A1:I1", [USERS_HEADERS]);
+    header[4] = "Permissions";
+  }
+
+  const colMap: Record<string, number> = {
+    username: 0,
+    password: 1,
+    name: 2,
+    role: 3,
+    permissions: 4,
+    phone: 5,
+    email: 6,
+    status: 7,
+    createdAt: 8,
+  };
+
+  header.forEach((c: any, idx: number) => {
+    const s = String(c || "").toLowerCase().trim();
+    if (s.includes("user")) colMap.username = idx;
+    else if (s.includes("pass")) colMap.password = idx;
+    else if (s.includes("name") || s.includes("নাম")) colMap.name = idx;
+    else if (s.includes("role") || s.includes("ভূমিকা")) colMap.role = idx;
+    else if (s.includes("perm") || s.includes("অনুমতি")) colMap.permissions = idx;
+    else if (s.includes("phone") || s.includes("ফোন")) colMap.phone = idx;
+    else if (s.includes("email") || s.includes("ইমেইল")) colMap.email = idx;
+    else if (s.includes("status") || s.includes("অবস্থা")) colMap.status = idx;
+    else if (s.includes("date") || s.includes("তারিখ")) colMap.createdAt = idx;
+  });
+
+  return { rows, colMap };
 }
 
 // 1. GET: Fetch all users
@@ -66,36 +113,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
-  // Only super_admin or admin can view users list
-  if (session.role !== "super_admin" && session.role !== "admin") {
+  // Check if session has permission to manage or view users
+  const userPerms = session.permissions || [];
+  const canManage = session.role === "super_admin" || userPerms.includes("manage_users");
+
+  if (!canManage && session.role !== "admin") {
     return NextResponse.json(
-      { success: false, message: "আপনার এই সেকশনে প্রবেশের অনুমতি নেই।" },
+      { success: false, message: "আপনার ইউজার তালিকা দেখার অনুমতি নেই।" },
       { status: 403 }
     );
   }
 
   try {
-    const rows = await getOrSeedUsers();
+    const { rows, colMap } = await getOrSeedUsers();
     const users: any[] = [];
 
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
-      if (!r || !r[0]) continue;
+      if (!r || !r[colMap.username]) continue;
 
-      const rawRole = (r[3] || "admin").toLowerCase().trim() as UserRole;
+      const rawRole = (r[colMap.role] || "admin").toLowerCase().trim() as UserRole;
       const roleConfig = ROLES[rawRole] || ROLES.admin;
+      const rawPerms = colMap.permissions !== -1 ? r[colMap.permissions] : "";
+      const normalized = normalizePermissions(rawRole, rawPerms);
 
       users.push({
-        rowIndex: i + 1, // 1-based index in Google Sheets
-        username: String(r[0] || "").trim(),
-        name: String(r[2] || r[0] || "").trim(),
+        rowIndex: i + 1,
+        username: String(r[colMap.username] || "").trim(),
+        name: String(r[colMap.name] || r[colMap.username] || "").trim(),
         role: rawRole,
         roleLabel: roleConfig.label,
         roleBadge: roleConfig.badgeClass,
-        phone: String(r[4] || "").trim(),
-        email: String(r[5] || "").trim(),
-        status: String(r[6] || "active").toLowerCase().trim() === "inactive" ? "inactive" : "active",
-        createdAt: String(r[7] || "").trim(),
+        permissions: normalized,
+        phone: String(r[colMap.phone] || "").trim(),
+        email: String(r[colMap.email] || "").trim(),
+        status:
+          String(r[colMap.status] || "active").toLowerCase().trim() === "inactive"
+            ? "inactive"
+            : "active",
+        createdAt: String(r[colMap.createdAt] || "").trim(),
       });
     }
 
@@ -107,7 +163,9 @@ export async function GET(req: NextRequest) {
         label: rc.label,
         description: rc.description,
         badgeClass: rc.badgeClass,
+        defaultPermissions: rc.defaultPermissions,
       })),
+      allPermissions: ALL_PERMISSIONS,
     });
   } catch (error: any) {
     console.error("Error fetching users:", error);
@@ -118,17 +176,17 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// 2. POST: Create a new user
+// 2. POST: Create a new user with granular permissions
 export async function POST(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
-  // Only super_admin can create users
-  if (session.role !== "super_admin") {
+  const userPerms = session.permissions || [];
+  if (session.role !== "super_admin" && !userPerms.includes("manage_users")) {
     return NextResponse.json(
-      { success: false, message: "শুধুমাত্র সুপার অ্যাডমিন নতুন ইউজার যোগ করতে পারবেন।" },
+      { success: false, message: "শুধুমাত্র অনুমোদিত অ্যাডমিন নতুন ইউজার যোগ করতে পারবেন।" },
       { status: 403 }
     );
   }
@@ -142,6 +200,13 @@ export async function POST(req: NextRequest) {
     const phone = (body.phone || "").trim();
     const email = (body.email || "").trim();
     const status = (body.status || "active").toLowerCase().trim();
+
+    // Permissions: array or comma string
+    let permsArray = body.permissions;
+    if (!Array.isArray(permsArray)) {
+      permsArray = getDefaultPermissions(role);
+    }
+    const permissionsStr = role === "super_admin" ? "all" : permsArray.join(",");
 
     if (!username || username.length < 3) {
       return NextResponse.json(
@@ -164,9 +229,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rows = await getOrSeedUsers();
-    // Check if username already exists
-    const exists = rows.slice(1).some((r) => String(r[0] || "").toLowerCase().trim() === username);
+    const { rows, colMap } = await getOrSeedUsers();
+    const exists = rows
+      .slice(1)
+      .some((r) => String(r[colMap.username] || "").toLowerCase().trim() === username);
+
     if (exists) {
       return NextResponse.json(
         { success: false, message: `"${username}" ইউজারনেমটি ইতিমধ্যে বিদ্যমান!` },
@@ -175,7 +242,17 @@ export async function POST(req: NextRequest) {
     }
 
     const createdAt = new Date().toISOString().split("T")[0];
-    const newRow = [username, password, name, role, phone, email, status, createdAt];
+    const newRow = [
+      username,
+      password,
+      name,
+      role,
+      permissionsStr,
+      phone,
+      email,
+      status,
+      createdAt,
+    ];
 
     await appendSheetRow("Users", newRow);
 
@@ -192,24 +269,24 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 3. PUT: Update an existing user
+// 3. PUT: Update an existing user with permissions
 export async function PUT(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
-  // Only super_admin can update users
-  if (session.role !== "super_admin") {
+  const userPerms = session.permissions || [];
+  if (session.role !== "super_admin" && !userPerms.includes("manage_users")) {
     return NextResponse.json(
-      { success: false, message: "শুধুমাত্র সুপার অ্যাডমিন ইউজারের তথ্য পরিবর্তন করতে পারবেন।" },
+      { success: false, message: "শুধুমাত্র অনুমোদিত অ্যাডমিন ইউজারের তথ্য পরিবর্তন করতে পারবেন।" },
       { status: 403 }
     );
   }
 
   try {
     const body = await req.json();
-    const { rowIndex, username, password, name, role, phone, email, status } = body;
+    const { rowIndex, username, password, name, role, permissions, phone, email, status } = body;
 
     if (!rowIndex || rowIndex <= 1) {
       return NextResponse.json(
@@ -218,7 +295,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const rows = await getOrSeedUsers();
+    const { rows, colMap } = await getOrSeedUsers();
     const currentRow = rows[rowIndex - 1];
     if (!currentRow) {
       return NextResponse.json(
@@ -227,25 +304,37 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Keep existing password if empty in request
-    const finalPassword = password && password.trim().length >= 4 ? password.trim() : currentRow[1];
-    const finalUsername = (username || currentRow[0]).toLowerCase().trim();
-    const finalName = name || currentRow[2];
-    const finalRole = (role || currentRow[3] || "admin").toLowerCase().trim();
-    const finalPhone = phone !== undefined ? phone : currentRow[4];
-    const finalEmail = email !== undefined ? email : currentRow[5];
-    const finalStatus = (status || currentRow[6] || "active").toLowerCase().trim();
-    const createdAt = currentRow[7] || new Date().toISOString().split("T")[0];
+    const finalPassword =
+      password && password.trim().length >= 4 ? password.trim() : currentRow[colMap.password];
+    const finalUsername = (username || currentRow[colMap.username]).toLowerCase().trim();
+    const finalName = name || currentRow[colMap.name];
+    const finalRole = (role || currentRow[colMap.role] || "admin").toLowerCase().trim();
+    const finalPhone = phone !== undefined ? phone : currentRow[colMap.phone];
+    const finalEmail = email !== undefined ? email : currentRow[colMap.email];
+    const finalStatus = (status || currentRow[colMap.status] || "active").toLowerCase().trim();
+    const createdAt = currentRow[colMap.createdAt] || new Date().toISOString().split("T")[0];
 
-    // If changing role of root admin, keep super_admin
+    // Build permissions string
+    let permissionsStr = "";
+    if (finalRole === "super_admin") {
+      permissionsStr = "all";
+    } else if (Array.isArray(permissions)) {
+      permissionsStr = permissions.join(",");
+    } else if (typeof permissions === "string" && permissions) {
+      permissionsStr = permissions;
+    } else {
+      permissionsStr = currentRow[colMap.permissions] || getDefaultPermissions(finalRole).join(",");
+    }
+
     const safeRole = finalUsername === "admin" ? "super_admin" : finalRole;
 
-    await updateSheetRange(`Users!A${rowIndex}:H${rowIndex}`, [
+    await updateSheetRange(`Users!A${rowIndex}:I${rowIndex}`, [
       [
         finalUsername,
         finalPassword,
         finalName,
         safeRole,
+        permissionsStr,
         finalPhone,
         finalEmail,
         finalStatus,
@@ -255,7 +344,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `"${finalName}"-এর তথ্য সফলভাবে আপডেট হয়েছে!`,
+      message: `"${finalName}"-এর তথ্য ও পারমিশন সফলভাবে আপডেট হয়েছে!`,
     });
   } catch (error: any) {
     console.error("Error updating user:", error);
@@ -273,7 +362,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
-  if (session.role !== "super_admin") {
+  const userPerms = session.permissions || [];
+  if (session.role !== "super_admin" && !userPerms.includes("manage_users")) {
     return NextResponse.json(
       { success: false, message: "শুধুমাত্র সুপার অ্যাডমিন ইউজার মুছে ফেলতে পারবেন।" },
       { status: 403 }
@@ -292,7 +382,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Protection: Cannot delete yourself!
     if (session.username.toLowerCase() === username) {
       return NextResponse.json(
         { success: false, message: "আপনি নিজের চলমান লগইন অ্যাকাউন্ট মুছতে পারবেন না!" },
@@ -300,7 +389,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Protection: Cannot delete main root admin
     if (username === "admin") {
       return NextResponse.json(
         { success: false, message: "প্রধান সিস্টেম অ্যাডমিন (admin) মোছা যাবে না!" },

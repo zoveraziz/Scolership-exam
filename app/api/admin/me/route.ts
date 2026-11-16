@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin-auth";
-import { ROLES, UserRole } from "@/lib/rbac";
+import { ROLES, UserRole, normalizePermissions, permissionsToMap } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
 
   const role = (session.role || "admin").toLowerCase().trim() as UserRole;
   const roleConfig = ROLES[role] || ROLES.admin;
+  const permsList = normalizePermissions(role, session.permissions);
+  const permsMap = permissionsToMap(permsList);
 
   return NextResponse.json({
     success: true,
@@ -26,7 +28,8 @@ export async function GET(req: NextRequest) {
       role,
       roleLabel: roleConfig.label,
       roleBadge: roleConfig.badgeClass,
-      permissions: roleConfig.permissions,
+      permissions: permsList,
+      permissionsMap: permsMap,
     },
   });
 }

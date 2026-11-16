@@ -578,23 +578,30 @@ function doGet(e) {
       var uSheet = ss.getSheetByName("Users");
       if (!uSheet) {
         uSheet = ss.insertSheet("Users");
-        uSheet.appendRow(["Username", "Password", "Name", "Role", "Phone", "Email", "Status", "CreatedAt"]);
-        uSheet.appendRow(["admin", "rhkl@Admin2026", "রেজাউল হাসান কয়েস লোদী ফাউন্ডেশন অ্যাডমিন", "super_admin", "০১৮২২৮৬২৯৩৯", "mabadshasyl@gmail.com", "active", "2026-11-16"]);
+        uSheet.appendRow(["Username", "Password", "Name", "Role", "Permissions", "Phone", "Email", "Status", "CreatedAt"]);
+        uSheet.appendRow(["admin", "rhkl@Admin2026", "রেজাউল হাসান কয়েস লোদী ফাউন্ডেশন অ্যাডমিন", "super_admin", "all", "০১৮২২৮৬২৯৩৯", "mabadshasyl@gmail.com", "active", "2026-11-16"]);
       }
       var uRows = uSheet.getDataRange().getValues();
       var uList = [];
       for (var u = 1; u < uRows.length; u++) {
         var ur = uRows[u];
         if (!ur || !ur[0]) continue;
+        var pCol = ur.length >= 9 ? String(ur[4] || "") : "";
+        var phCol = ur.length >= 9 ? String(ur[5] || "") : String(ur[4] || "");
+        var emCol = ur.length >= 9 ? String(ur[6] || "") : String(ur[5] || "");
+        var stCol = ur.length >= 9 ? String(ur[7] || "active") : String(ur[6] || "active");
+        var dtCol = ur.length >= 9 ? String(ur[8] || "") : String(ur[7] || "");
+
         uList.push({
           rowIndex: u + 1,
           username: String(ur[0]).trim(),
           name: String(ur[2] || ur[0]).trim(),
           role: String(ur[3] || "admin").trim().toLowerCase(),
-          phone: String(ur[4] || "").trim(),
-          email: String(ur[5] || "").trim(),
-          status: String(ur[6] || "active").trim().toLowerCase(),
-          createdAt: String(ur[7] || "").trim()
+          permissions: pCol,
+          phone: phCol.trim(),
+          email: emCol.trim(),
+          status: stCol.trim().toLowerCase(),
+          createdAt: dtCol.trim()
         });
       }
       return createJsonResponse({ success: true, data: uList });

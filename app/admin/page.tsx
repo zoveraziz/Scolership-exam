@@ -44,7 +44,17 @@ import {
   UserPlus,
   KeyRound,
   Shield,
+  Check,
+  RotateCcw,
 } from "lucide-react";
+import {
+  ALL_PERMISSIONS,
+  getDefaultPermissions,
+  normalizePermissions,
+  ROLES,
+  UserRole,
+  PermissionKey,
+} from "@/lib/rbac";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -138,7 +148,16 @@ export default function AdminDashboardPage() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("");
-  const [userForm, setUserForm] = useState({
+  const [userForm, setUserForm] = useState<{
+    username: string;
+    password: string;
+    name: string;
+    role: string;
+    phone: string;
+    email: string;
+    status: string;
+    permissions: string[];
+  }>({
     username: "",
     password: "",
     name: "",
@@ -146,6 +165,7 @@ export default function AdminDashboardPage() {
     phone: "",
     email: "",
     status: "active",
+    permissions: getDefaultPermissions("admin"),
   });
   const [savingUser, setSavingUser] = useState(false);
 
@@ -312,6 +332,16 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // RBAC Permission Check Helper
+  const hasPerm = (perm: string) => {
+    if (!adminUser) return false;
+    if (adminUser.role === "super_admin") return true;
+    if (Array.isArray(adminUser.permissions)) {
+      return adminUser.permissions.includes(perm);
+    }
+    return false;
+  };
+
   // 9. Fetch Users (RBAC)
   const fetchUsers = async () => {
     try {
@@ -326,6 +356,78 @@ export default function AdminDashboardPage() {
     } finally {
       setLoadingUsers(false);
     }
+  };
+
+  const handleRoleChange = (newRole: string) => {
+    setUserForm((prev) => ({
+      ...prev,
+      role: newRole,
+      permissions: getDefaultPermissions(newRole),
+    }));
+  };
+
+  const handleTogglePermission = (permKey: string) => {
+    setUserForm((prev) => {
+      const exists = prev.permissions.includes(permKey);
+      const updated = exists
+        ? prev.permissions.filter((p) => p !== permKey)
+        : [...prev.permissions, permKey];
+      return { ...prev, permissions: updated };
+    });
+  };
+
+  const handleSelectAllPermissions = () => {
+    setUserForm((prev) => ({
+      ...prev,
+      permissions: ALL_PERMISSIONS.map((p) => p.key),
+    }));
+  };
+
+  const handleClearAllPermissions = () => {
+    setUserForm((prev) => ({
+      ...prev,
+      permissions: [],
+    }));
+  };
+
+  const handleResetToRoleDefaults = () => {
+    setUserForm((prev) => ({
+      ...prev,
+      permissions: getDefaultPermissions(prev.role),
+    }));
+  };
+
+  const openAddUserModal = () => {
+    setEditingUser(null);
+    setUserForm({
+      username: "",
+      password: "",
+      name: "",
+      role: "admin",
+      phone: "",
+      email: "",
+      status: "active",
+      permissions: getDefaultPermissions("admin"),
+    });
+    setShowUserModal(true);
+  };
+
+  const openEditUserModal = (u: any) => {
+    setEditingUser(u);
+    const userPerms = Array.isArray(u.permissions) && u.permissions.length > 0
+      ? u.permissions
+      : normalizePermissions(u.role, u.rawPermissions || u.permissions);
+    setUserForm({
+      username: u.username,
+      password: "",
+      name: u.name,
+      role: u.role,
+      phone: u.phone || "",
+      email: u.email || "",
+      status: u.status || "active",
+      permissions: userPerms,
+    });
+    setShowUserModal(true);
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -355,6 +457,7 @@ export default function AdminDashboardPage() {
           phone: "",
           email: "",
           status: "active",
+          permissions: getDefaultPermissions("admin"),
         });
         fetchUsers();
       } else {
@@ -395,7 +498,7 @@ export default function AdminDashboardPage() {
       fetchNotices();
       fetchSubmissions();
       fetchPages();
-      if (adminUser.role === "super_admin" || adminUser.role === "admin") {
+      if (adminUser.role === "super_admin" || adminUser.role === "admin" || (adminUser.permissions && adminUser.permissions.includes("manage_users"))) {
         fetchUsers();
       }
     }
@@ -2441,11 +2544,11 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-emerald-700" />
                     <h2 className="text-lg font-bold text-gray-900">
-                      ব্যবহারকারী ও ভূমিকা ব্যবস্থাপনা (Users & RBAC)
+                      ব্যবহারকারী ও ভূমিকা ব্যবস্থাপনা (Users & Granular RBAC)
                     </h2>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    সকল অ্যাডমিন, পরীক্ষা নিয়ন্ত্রক ও ডাটা এন্ট্রি অপারেটর অ্যাকাউন্ট পরিচালনা করুন। প্রতিটি ইউজারের পৃথক রোল ও পারমিশন নিশ্চিত করা হয়েছে।
+                    সকল অ্যাডমিন, পরীক্ষা নিয়ন্ত্রক ও ডাটা এন্ট্রি অপারেটরের অ্যাকাউন্ট ও পৃথক গ্র্যানুলার পারমিশন পরিচালনা করুন।
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2456,21 +2559,9 @@ export default function AdminDashboardPage() {
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingUsers ? "animate-spin" : ""}`} />
                     <span>রিফ্রেশ</span>
                   </button>
-                  {adminUser?.role === "super_admin" && (
+                  {(adminUser?.role === "super_admin" || hasPerm("manage_users")) && (
                     <button
-                      onClick={() => {
-                        setEditingUser(null);
-                        setUserForm({
-                          username: "",
-                          password: "",
-                          name: "",
-                          role: "admin",
-                          phone: "",
-                          email: "",
-                          status: "active",
-                        });
-                        setShowUserModal(true);
-                      }}
+                      onClick={openAddUserModal}
                       className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
                     >
                       <UserPlus className="w-4 h-4" />
@@ -2510,20 +2601,20 @@ export default function AdminDashboardPage() {
               <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
                 <div className="text-xs font-bold text-emerald-950 mb-2 flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-emerald-700" />
-                  <span>রোল ও পারমিশন ওভারভিউ (Role Hierarchy):</span>
+                  <span>রোল ও পারমিশন ওভারভিউ (Role Hierarchy & Granular Control):</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-[11px]">
                   <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
                     <span className="font-bold text-amber-900">👑 সুপার অ্যাডমিন:</span>
-                    <p className="text-gray-600 mt-0.5">সকল সেটিংস, ইউজার তৈরি/ডিলিট ও ডাটার পূর্ণ নিয়ন্ত্রণ।</p>
+                    <p className="text-gray-600 mt-0.5">সকল সেটিংস, ইউজার তৈরি/ডিলিট ও ডাটার পূর্ণ নিয়ন্ত্রণ (১২/১২ পারমিশন)।</p>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
                     <span className="font-bold text-emerald-900">🛡️ অ্যাডমিন:</span>
-                    <p className="text-gray-600 mt-0.5">আবেদনকারী, নোটিশ, কমিটি ও বাণী পরিচালনা (সেটিংস ও ইউজার ছাড়া)।</p>
+                    <p className="text-gray-600 mt-0.5">আবেদনকারী, নোটিশ, কমিটি ও বাণী পরিচালনা (সেটিংস ও ইউজার ছাড়া ৯টি পারমিশন)।</p>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
                     <span className="font-bold text-purple-900">🎓 পরীক্ষা নিয়ন্ত্রক:</span>
-                    <p className="text-gray-600 mt-0.5">আবেদন যাচাইকরণ, রোল বণ্টন ও এডমিট কার্ড অনুমোদন।</p>
+                    <p className="text-gray-600 mt-0.5">আবেদন যাচাইকরণ, রোল বণ্টন ও এডমিট কার্ড অনুমোদন (৫টি পারমিশন)।</p>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
                     <span className="font-bold text-blue-900">👤 ডাটা এন্ট্রি / অপারেটর:</span>
@@ -2560,11 +2651,12 @@ export default function AdminDashboardPage() {
               {/* Users Table */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-2xs">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-gray-700 min-w-[700px]">
+                  <table className="w-full text-left text-xs text-gray-700 min-w-[760px]">
                     <thead className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
                       <tr>
                         <th className="py-3 px-4">ব্যবহারকারী (নাম ও আইডি)</th>
                         <th className="py-3 px-4">ভূমিকা (Role)</th>
+                        <th className="py-3 px-4">পারমিশন ও এক্সেস</th>
                         <th className="py-3 px-4">যোগাযোগ</th>
                         <th className="py-3 px-4 text-center">স্ট্যাটাস</th>
                         <th className="py-3 px-4">তৈরির তারিখ</th>
@@ -2578,96 +2670,135 @@ export default function AdminDashboardPage() {
                           if (userSearch) {
                             const q = userSearch.toLowerCase();
                             return (
-                              u.name.toLowerCase().includes(q) ||
-                              u.username.toLowerCase().includes(q) ||
-                              u.phone.includes(q)
+                              (u.name && u.name.toLowerCase().includes(q)) ||
+                              (u.username && u.username.toLowerCase().includes(q)) ||
+                              (u.phone && u.phone.includes(q))
                             );
                           }
                           return true;
                         })
-                        .map((u, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50 transition">
-                            <td className="py-3 px-4">
-                              <div className="font-bold text-gray-900">{u.name}</div>
-                              <div className="font-mono text-[11px] text-gray-500">@{u.username}</div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
-                                  u.role === "super_admin"
-                                    ? "bg-amber-100 text-amber-900 border-amber-300"
-                                    : u.role === "controller"
-                                    ? "bg-purple-100 text-purple-900 border-purple-300"
-                                    : u.role === "operator"
-                                    ? "bg-blue-100 text-blue-900 border-blue-300"
-                                    : "bg-emerald-100 text-emerald-900 border-emerald-300"
-                                }`}
-                              >
-                                {u.role === "super_admin"
-                                  ? "👑 সুপার অ্যাডমিন"
-                                  : u.role === "controller"
-                                  ? "🎓 পরীক্ষা নিয়ন্ত্রক"
-                                  : u.role === "operator"
-                                  ? "👤 ডাটা এন্ট্রি"
-                                  : "🛡️ অ্যাডমিন"}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="font-medium text-gray-800">{u.phone || "—"}</div>
-                              <div className="text-[11px] text-gray-500">{u.email || "—"}</div>
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span
-                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                  u.status === "active"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {u.status === "active" ? "সক্রিয়" : "নিষ্ক্রিয়"}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
-                              {u.createdAt || "—"}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              {adminUser?.role === "super_admin" ? (
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    onClick={() => {
-                                      setEditingUser(u);
-                                      setUserForm({
-                                        username: u.username,
-                                        password: "",
-                                        name: u.name,
-                                        role: u.role,
-                                        phone: u.phone,
-                                        email: u.email,
-                                        status: u.status,
-                                      });
-                                      setShowUserModal(true);
-                                    }}
-                                    className="p-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 rounded-lg transition"
-                                    title="সম্পাদনা / পাসওয়ার্ড রিসেট"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  {u.username !== "admin" && u.username !== adminUser?.username && (
-                                    <button
-                                      onClick={() => handleDeleteUser(u)}
-                                      className="p-1.5 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 rounded-lg transition"
-                                      title="মুছে ফেলুন"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                        .map((u, idx) => {
+                          const perms: string[] = Array.isArray(u.permissions)
+                            ? u.permissions
+                            : normalizePermissions(u.role, u.rawPermissions || u.permissions);
+                          const isSuper = u.role === "super_admin";
+
+                          return (
+                            <tr key={idx} className="hover:bg-gray-50 transition">
+                              <td className="py-3 px-4">
+                                <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                                  <span>{u.name}</span>
+                                  {u.username === adminUser?.username && (
+                                    <span className="text-[10px] font-normal px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-semibold">
+                                      আপনি
+                                    </span>
                                   )}
                                 </div>
-                              ) : (
-                                <span className="text-[11px] text-gray-400">অনুমতি নেই</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                <div className="font-mono text-[11px] text-gray-500">@{u.username}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                                    u.role === "super_admin"
+                                      ? "bg-amber-100 text-amber-900 border-amber-300"
+                                      : u.role === "controller"
+                                      ? "bg-purple-100 text-purple-900 border-purple-300"
+                                      : u.role === "operator"
+                                      ? "bg-blue-100 text-blue-900 border-blue-300"
+                                      : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                                  }`}
+                                >
+                                  {u.role === "super_admin"
+                                    ? "👑 সুপার অ্যাডমিন"
+                                    : u.role === "controller"
+                                    ? "🎓 পরীক্ষা নিয়ন্ত্রক"
+                                    : u.role === "operator"
+                                    ? "👤 ডাটা এন্ট্রি"
+                                    : "🛡️ অ্যাডমিন"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded ${
+                                        isSuper
+                                          ? "bg-amber-100 text-amber-900 border border-amber-200"
+                                          : perms.length >= 8
+                                          ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
+                                          : "bg-gray-100 text-gray-800 border border-gray-200"
+                                      }`}
+                                    >
+                                      {isSuper
+                                        ? "👑 সম্পূর্ণ নিয়ন্ত্রণ (১২/১২)"
+                                        : `${perms.length} / ${ALL_PERMISSIONS.length} টি পারমিশন`}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 max-w-[260px]">
+                                    {perms.slice(0, 3).map((pKey) => {
+                                      const pDef = ALL_PERMISSIONS.find((p) => p.key === pKey);
+                                      return (
+                                        <span
+                                          key={pKey}
+                                          className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded"
+                                        >
+                                          {pDef ? pDef.label.split(" ")[0] : pKey}
+                                        </span>
+                                      );
+                                    })}
+                                    {perms.length > 3 && (
+                                      <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                        +{perms.length - 3} আরও
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="font-medium text-gray-800 font-mono text-[11px]">{u.phone || "—"}</div>
+                                <div className="text-[11px] text-gray-500">{u.email || "—"}</div>
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span
+                                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                    u.status === "active"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {u.status === "active" ? "সক্রিয়" : "নিষ্ক্রিয়"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
+                                {u.createdAt || "—"}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                {(adminUser?.role === "super_admin" || hasPerm("manage_users")) ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => openEditUserModal(u)}
+                                      className="p-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 rounded-lg transition"
+                                      title="সম্পাদনা ও পারমিশন পরিবর্তন"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    {u.username !== "admin" && u.username !== adminUser?.username && (
+                                      <button
+                                        onClick={() => handleDeleteUser(u)}
+                                        className="p-1.5 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 rounded-lg transition"
+                                        title="মুছে ফেলুন"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-gray-400">অনুমতি নেই</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
@@ -3496,129 +3627,253 @@ export default function AdminDashboardPage() {
       )}
       {/* Modal: Add/Edit User */}
       {showUserModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-700" />
-                <h3 className="text-base font-bold text-gray-900">
-                  {editingUser ? "ব্যবহারকারীর তথ্য ও পাসওয়ার্ড সংশোধন" : "নতুন ব্যবহারকারী যোগ করুন"}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-800/80 flex items-center justify-center text-amber-300">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    {editingUser ? "ব্যবহারকারীর তথ্য ও পারমিশন সংশোধন" : "নতুন ব্যবহারকারী ও অ্যাক্সেস রোল যোগ"}
+                  </h3>
+                  <p className="text-[11px] text-emerald-200">
+                    {editingUser
+                      ? `ইউজার: @${editingUser.username} (${editingUser.name})`
+                      : "নতুন অ্যাকাউন্টের রোল ও কাস্টম পারমিশন কনফিগার করুন"}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => {
                   setShowUserModal(false);
                   setEditingUser(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-emerald-300 hover:text-white p-1 rounded-lg hover:bg-emerald-800 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">
-                  পূর্ণ নাম (Full Name) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={userForm.name}
-                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  placeholder="যেমন: মাওলানা এ. এইচ. এম. নোমান"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">
-                  ইউজারনেম (Username) * {editingUser && <span className="text-gray-400 font-normal">(অপরিবর্তনযোগ্য)</span>}
-                </label>
-                <input
-                  type="text"
-                  required
-                  disabled={!!editingUser}
-                  value={userForm.username}
-                  onChange={(e) =>
-                    setUserForm({
-                      ...userForm,
-                      username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""),
-                    })
-                  }
-                  placeholder="যেমন: noman_admin"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">
-                  পাসওয়ার্ড (Password) {editingUser ? <span className="text-emerald-700 font-normal">(পরিবর্তন না করতে চাইলে ফাঁকা রাখুন)</span> : "*"}
-                </label>
-                <input
-                  type="text"
-                  required={!editingUser}
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  placeholder={editingUser ? "নতুন পাসওয়ার্ড দিন..." : "কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড"}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">
-                  ভূমিকা ও অ্যাক্সেস রোল (Role) *
-                </label>
-                <select
-                  value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  disabled={editingUser && editingUser.username === "admin"}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
-                >
-                  <option value="super_admin">👑 সুপার অ্যাডমিন (Full Control & Settings)</option>
-                  <option value="admin">🛡️ অ্যাডমিন (Submissions & Content)</option>
-                  <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক (Verifications & Admit)</option>
-                  <option value="operator">👤 ডাটা এন্ট্রি / অপারেটর (View & Print Only)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">মোবাইল নম্বর</label>
-                  <input
-                    type="text"
-                    value={userForm.phone}
-                    onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-                    placeholder="০১৭১..."
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+            {/* Modal Body (Scrollable) */}
+            <form onSubmit={handleSaveUser} className="p-4 sm:p-6 overflow-y-auto space-y-5 text-xs flex-1">
+              {/* Basic Information */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  ১. সাধারণ ও লগইন তথ্য (Account Details)
                 </div>
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">স্ট্যাটাস</label>
-                  <select
-                    value={userForm.status}
-                    onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
-                    disabled={editingUser && editingUser.username === "admin"}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
-                  >
-                    <option value="active">🟢 সক্রিয় (Active)</option>
-                    <option value="inactive">🔴 নিষ্ক্রিয় (Inactive)</option>
-                  </select>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      পূর্ণ নাম (Full Name) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={userForm.name}
+                      onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                      placeholder="যেমন: মুহাম্মদ আবদুল্লাহ"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      ইউজারনেম (Username) * {editingUser && <span className="text-gray-400 font-normal">(অপরিবর্তনযোগ্য)</span>}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      disabled={!!editingUser}
+                      value={userForm.username}
+                      onChange={(e) =>
+                        setUserForm({
+                          ...userForm,
+                          username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""),
+                        })
+                      }
+                      placeholder="যেমন: abdullah_admin"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      পাসওয়ার্ড (Password) {editingUser ? <span className="text-emerald-700 font-normal">(অপরিবর্তিত রাখতে ফাঁকা রাখুন)</span> : "*"}
+                    </label>
+                    <input
+                      type="text"
+                      required={!editingUser}
+                      value={userForm.password}
+                      onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                      placeholder={editingUser ? "নতুন পাসওয়ার্ড দিন..." : "কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড"}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      প্রাথমিক ভূমিকা (Primary Role) *
+                    </label>
+                    <select
+                      value={userForm.role}
+                      onChange={(e) => handleRoleChange(e.target.value)}
+                      disabled={editingUser && editingUser.username === "admin"}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    >
+                      <option value="super_admin">👑 সুপার অ্যাডমিন (Full Control & Settings)</option>
+                      <option value="admin">🛡️ অ্যাডমিন (Submissions & Content)</option>
+                      <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক (Verifications & Admit)</option>
+                      <option value="operator">👤 ডাটা এন্ট্রি / অপারেটর (View & Print Only)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">মোবাইল নম্বর</label>
+                    <input
+                      type="text"
+                      value={userForm.phone}
+                      onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                      placeholder="০১৭১২..."
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">ইমেইল ঠিকানা</label>
+                    <input
+                      type="email"
+                      value={userForm.email}
+                      onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                      placeholder="example@mail.com"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">একাউন্ট স্ট্যাটাস</label>
+                    <select
+                      value={userForm.status}
+                      onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                      disabled={editingUser && editingUser.username === "admin"}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    >
+                      <option value="active">🟢 সক্রিয় (Active)</option>
+                      <option value="inactive">🔴 নিষ্ক্রিয় (Inactive)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">ইমেইল ঠিকানা</label>
-                <input
-                  type="email"
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  placeholder="example@mail.com"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+              {/* Granular Permissions Section */}
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>২. গ্র্যানুলার পারমিশন নিয়ন্ত্রণ (Granular Permissions)</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      প্রতিটি চেকবক্সে টিক দিয়ে বা উঠিয়ে ইউজারের ক্ষমতা তাৎক্ষণিকভাবে নির্ধারণ করুন।
+                    </p>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllPermissions}
+                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold transition"
+                    >
+                      সব সিলেক্ট
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetToRoleDefaults}
+                      className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold transition"
+                    >
+                      ডিফল্ট রিসেট
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearAllPermissions}
+                      className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[10px] font-bold transition"
+                    >
+                      সব বাতিল
+                    </button>
+                  </div>
+                </div>
+
+                {/* Active Permissions Count Banner */}
+                <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-xs">
+                  <span className="text-emerald-950 font-semibold flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-emerald-700" />
+                    <span>নির্বাচিত পারমিশন:</span>
+                  </span>
+                  <span className="font-bold text-emerald-900 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                    {userForm.permissions.length} / {ALL_PERMISSIONS.length} টি সক্রিয়
+                  </span>
+                </div>
+
+                {/* Categorized Permissions Grid */}
+                {(["প্রশাসন ও নিরাপত্তা", "পরীক্ষা ও আবেদন", "ওয়েবসাইট কনটেন্ট"] as const).map((cat) => {
+                  const catPerms = ALL_PERMISSIONS.filter((p) => p.category === cat);
+                  return (
+                    <div key={cat} className="space-y-2 bg-gray-50/60 p-3 rounded-xl border border-gray-200/70">
+                      <div className="text-[11px] font-bold text-gray-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>{cat}</span>
+                        <span className="text-gray-400 font-normal">({catPerms.length}টি)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {catPerms.map((perm) => {
+                          const isChecked = userForm.permissions.includes(perm.key);
+                          return (
+                            <label
+                              key={perm.key}
+                              onClick={() => handleTogglePermission(perm.key)}
+                              className={`p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5 select-none ${
+                                isChecked
+                                  ? "bg-white border-emerald-500 shadow-2xs ring-1 ring-emerald-500/20"
+                                  : "bg-white/60 border-gray-200 hover:border-gray-300 text-gray-600"
+                              }`}
+                            >
+                              <div
+                                className={`w-4 h-4 mt-0.5 rounded flex items-center justify-center shrink-0 transition ${
+                                  isChecked
+                                    ? "bg-emerald-600 text-white"
+                                    : "border border-gray-300 bg-white"
+                                }`}
+                              >
+                                {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-bold text-[11px] leading-tight ${isChecked ? "text-gray-900" : "text-gray-700"}`}>
+                                  {perm.label}
+                                </div>
+                                <div className="text-[10px] text-gray-500 leading-snug mt-0.5 line-clamp-2">
+                                  {perm.description}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -3632,10 +3887,10 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={savingUser}
-                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {savingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingUser ? "আপডেট করুন" : "সংরক্ষণ করুন"}</span>
+                  <span>{editingUser ? "আপডেট সংরক্ষণ করুন" : "নতুন ব্যবহারকারী তৈরি করুন"}</span>
                 </button>
               </div>
             </form>

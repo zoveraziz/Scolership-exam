@@ -9,14 +9,21 @@ export interface AdminSession {
   username: string;
   name: string;
   role: string;
+  permissions?: string[];
   exp: number;
 }
 
-export function createToken(username: string, name: string, role: string = "super_admin"): string {
+export function createToken(
+  username: string,
+  name: string,
+  role: string = "super_admin",
+  permissions?: string[]
+): string {
   const payload: AdminSession = {
     username,
     name,
     role: role || "super_admin",
+    permissions,
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 
