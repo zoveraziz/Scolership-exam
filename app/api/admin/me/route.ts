@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin-auth";
+import { ROLES, UserRole } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const role = (session.role || "admin").toLowerCase().trim() as UserRole;
+  const roleConfig = ROLES[role] || ROLES.admin;
+
   return NextResponse.json({
     success: true,
     authenticated: true,
     admin: {
       username: session.username,
       name: session.name,
-      role: session.role,
+      role,
+      roleLabel: roleConfig.label,
+      roleBadge: roleConfig.badgeClass,
+      permissions: roleConfig.permissions,
     },
   });
 }

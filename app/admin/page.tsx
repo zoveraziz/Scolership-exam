@@ -40,6 +40,10 @@ import {
   ArrowLeft,
   ArrowRight,
   SlidersHorizontal,
+  ShieldCheck,
+  UserPlus,
+  KeyRound,
+  Shield,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -49,7 +53,7 @@ export default function AdminDashboardPage() {
   const [adminUser, setAdminUser] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "settings" | "submissions" | "controllers" | "messages" | "committee" | "notices" | "pages"
+    "overview" | "settings" | "submissions" | "controllers" | "messages" | "committee" | "notices" | "pages" | "users"
   >("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -126,6 +130,24 @@ export default function AdminDashboardPage() {
   const [loadingPages, setLoadingPages] = useState(false);
   const [newPage, setNewPage] = useState({ slug: "", title: "", content: "", showInMenu: "Yes", parentMenu: "", order: "1" });
   const [showPageModal, setShowPageModal] = useState(false);
+
+  // Users & RBAC State
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("");
+  const [userForm, setUserForm] = useState({
+    username: "",
+    password: "",
+    name: "",
+    role: "admin",
+    phone: "",
+    email: "",
+    status: "active",
+  });
+  const [savingUser, setSavingUser] = useState(false);
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMsg({ text, type });
@@ -290,6 +312,80 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // 9. Fetch Users (RBAC)
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.success && data.data) {
+        setUsersList(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingUser(true);
+      const method = editingUser ? "PUT" : "POST";
+      const payload = editingUser
+        ? { ...userForm, rowIndex: editingUser.rowIndex }
+        : userForm;
+
+      const res = await fetch("/api/admin/users", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message, "success");
+        setShowUserModal(false);
+        setEditingUser(null);
+        setUserForm({
+          username: "",
+          password: "",
+          name: "",
+          role: "admin",
+          phone: "",
+          email: "",
+          status: "active",
+        });
+        fetchUsers();
+      } else {
+        showToast(data.message || "ত্রুটি ঘটেছে", "error");
+      }
+    } catch (err: any) {
+      showToast("সার্ভার ত্রুটি: " + err.message, "error");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: any) => {
+    if (!confirm(`আপনি কি নিশ্চিত যে "${user.name} (${user.username})"-কে মুছে ফেলতে চান?`)) return;
+    try {
+      const res = await fetch(
+        `/api/admin/users?rowIndex=${user.rowIndex}&username=${encodeURIComponent(user.username)}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message, "success");
+        fetchUsers();
+      } else {
+        showToast(data.message || "মুছতে ব্যর্থ হয়েছে", "error");
+      }
+    } catch (err: any) {
+      showToast("সার্ভার ত্রুটি: " + err.message, "error");
+    }
+  };
+
   useEffect(() => {
     if (!loadingAuth && adminUser) {
       fetchSettings();
@@ -299,6 +395,9 @@ export default function AdminDashboardPage() {
       fetchNotices();
       fetchSubmissions();
       fetchPages();
+      if (adminUser.role === "super_admin" || adminUser.role === "admin") {
+        fetchUsers();
+      }
     }
   }, [loadingAuth, adminUser]);
 
@@ -709,7 +808,19 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2">
               <div className="hidden lg:block text-right">
                 <p className="text-xs font-bold text-white leading-none">{adminUser?.name}</p>
-                <span className="text-[10px] text-emerald-300">সুপার অ্যাডমিন</span>
+                <div className="flex items-center justify-end gap-1 mt-0.5">
+                  <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md shadow-2xs ${
+                    adminUser?.role === "super_admin"
+                      ? "bg-amber-400 text-amber-950"
+                      : adminUser?.role === "controller"
+                      ? "bg-purple-300 text-purple-950"
+                      : adminUser?.role === "operator"
+                      ? "bg-blue-300 text-blue-950"
+                      : "bg-emerald-300 text-emerald-950"
+                  }`}>
+                    {adminUser?.roleLabel || (adminUser?.role === "super_admin" ? "👑 সুপার অ্যাডমিন" : "অ্যাডমিন")}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={handleLogout}
@@ -880,6 +991,29 @@ export default function AdminDashboardPage() {
               <FileText className="w-4 h-4" />
               <span>পেজ ও ড্রপডাউন মেনু</span>
             </button>
+
+            {/* Users & RBAC */}
+            {(adminUser?.role === "super_admin" || adminUser?.role === "admin") && (
+              <button
+                onClick={() => {
+                  setActiveTab("users");
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                  activeTab === "users"
+                    ? "bg-emerald-700 text-white shadow-md shadow-emerald-700/20"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 text-amber-500" />
+                  <span>ব্যবহারকারী ও রোল (RBAC)</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                  {usersList.length}
+                </span>
+              </button>
+            )}
           </nav>
         </aside>
 
@@ -951,6 +1085,16 @@ export default function AdminDashboardPage() {
             >
               পেজ ও ড্রপডাউন
             </button>
+            {(adminUser?.role === "super_admin" || adminUser?.role === "admin") && (
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition ${
+                  activeTab === "users" ? "bg-emerald-700 text-white shadow" : "bg-white text-gray-700 border border-gray-200"
+                }`}
+              >
+                🛡️ ইউজার ও RBAC ({usersList.length})
+              </button>
+            )}
           </div>
 
           {/* TAB 1: OVERVIEW */}
@@ -2287,6 +2431,249 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+
+          {/* TAB 9: USERS & ROLE-BASED ACCESS CONTROL (RBAC) */}
+          {activeTab === "users" && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                    <h2 className="text-lg font-bold text-gray-900">
+                      ব্যবহারকারী ও ভূমিকা ব্যবস্থাপনা (Users & RBAC)
+                    </h2>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    সকল অ্যাডমিন, পরীক্ষা নিয়ন্ত্রক ও ডাটা এন্ট্রি অপারেটর অ্যাকাউন্ট পরিচালনা করুন। প্রতিটি ইউজারের পৃথক রোল ও পারমিশন নিশ্চিত করা হয়েছে।
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchUsers}
+                    className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingUsers ? "animate-spin" : ""}`} />
+                    <span>রিফ্রেশ</span>
+                  </button>
+                  {adminUser?.role === "super_admin" && (
+                    <button
+                      onClick={() => {
+                        setEditingUser(null);
+                        setUserForm({
+                          username: "",
+                          password: "",
+                          name: "",
+                          role: "admin",
+                          phone: "",
+                          email: "",
+                          status: "active",
+                        });
+                        setShowUserModal(true);
+                      }}
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>নতুন ব্যবহারকারী যোগ করুন</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="text-xs font-medium text-gray-500">মোট ব্যবহারকারী</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">{usersList.length}</div>
+                </div>
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl">
+                  <div className="text-xs font-medium text-amber-800">👑 সুপার অ্যাডমিন</div>
+                  <div className="text-xl font-bold text-amber-950 mt-1">
+                    {usersList.filter((u) => u.role === "super_admin").length}
+                  </div>
+                </div>
+                <div className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-xl">
+                  <div className="text-xs font-medium text-purple-800">🎓 পরীক্ষা নিয়ন্ত্রক ও অ্যাডমিন</div>
+                  <div className="text-xl font-bold text-purple-950 mt-1">
+                    {usersList.filter((u) => u.role === "admin" || u.role === "controller").length}
+                  </div>
+                </div>
+                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl">
+                  <div className="text-xs font-medium text-emerald-800">🟢 সক্রিয় একাউন্ট</div>
+                  <div className="text-xl font-bold text-emerald-950 mt-1">
+                    {usersList.filter((u) => u.status === "active").length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Roles Guide Banner */}
+              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                <div className="text-xs font-bold text-emerald-950 mb-2 flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-emerald-700" />
+                  <span>রোল ও পারমিশন ওভারভিউ (Role Hierarchy):</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-[11px]">
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="font-bold text-amber-900">👑 সুপার অ্যাডমিন:</span>
+                    <p className="text-gray-600 mt-0.5">সকল সেটিংস, ইউজার তৈরি/ডিলিট ও ডাটার পূর্ণ নিয়ন্ত্রণ।</p>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="font-bold text-emerald-900">🛡️ অ্যাডমিন:</span>
+                    <p className="text-gray-600 mt-0.5">আবেদনকারী, নোটিশ, কমিটি ও বাণী পরিচালনা (সেটিংস ও ইউজার ছাড়া)।</p>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="font-bold text-purple-900">🎓 পরীক্ষা নিয়ন্ত্রক:</span>
+                    <p className="text-gray-600 mt-0.5">আবেদন যাচাইকরণ, রোল বণ্টন ও এডমিট কার্ড অনুমোদন।</p>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="font-bold text-blue-900">👤 ডাটা এন্ট্রি / অপারেটর:</span>
+                    <p className="text-gray-600 mt-0.5">শুধুমাত্র আবেদনকারী তালিকা দেখা ও এডমিট প্রিন্ট করা।</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="নাম, ইউজারনেম বা ফোন দিয়ে খুঁজুন..."
+                    className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">সকল ভূমিকা (All Roles)</option>
+                  <option value="super_admin">👑 সুপার অ্যাডমিন</option>
+                  <option value="admin">🛡️ অ্যাডমিন</option>
+                  <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক</option>
+                  <option value="operator">👤 ডাটা এন্ট্রি অপারেটর</option>
+                </select>
+              </div>
+
+              {/* Users Table */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-gray-700 min-w-[700px]">
+                    <thead className="bg-emerald-950 text-white font-bold uppercase text-[11px]">
+                      <tr>
+                        <th className="py-3 px-4">ব্যবহারকারী (নাম ও আইডি)</th>
+                        <th className="py-3 px-4">ভূমিকা (Role)</th>
+                        <th className="py-3 px-4">যোগাযোগ</th>
+                        <th className="py-3 px-4 text-center">স্ট্যাটাস</th>
+                        <th className="py-3 px-4">তৈরির তারিখ</th>
+                        <th className="py-3 px-4 text-center">অ্যাকশন</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {usersList
+                        .filter((u) => {
+                          if (userRoleFilter && u.role !== userRoleFilter) return false;
+                          if (userSearch) {
+                            const q = userSearch.toLowerCase();
+                            return (
+                              u.name.toLowerCase().includes(q) ||
+                              u.username.toLowerCase().includes(q) ||
+                              u.phone.includes(q)
+                            );
+                          }
+                          return true;
+                        })
+                        .map((u, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50 transition">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-gray-900">{u.name}</div>
+                              <div className="font-mono text-[11px] text-gray-500">@{u.username}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                                  u.role === "super_admin"
+                                    ? "bg-amber-100 text-amber-900 border-amber-300"
+                                    : u.role === "controller"
+                                    ? "bg-purple-100 text-purple-900 border-purple-300"
+                                    : u.role === "operator"
+                                    ? "bg-blue-100 text-blue-900 border-blue-300"
+                                    : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                                }`}
+                              >
+                                {u.role === "super_admin"
+                                  ? "👑 সুপার অ্যাডমিন"
+                                  : u.role === "controller"
+                                  ? "🎓 পরীক্ষা নিয়ন্ত্রক"
+                                  : u.role === "operator"
+                                  ? "👤 ডাটা এন্ট্রি"
+                                  : "🛡️ অ্যাডমিন"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-medium text-gray-800">{u.phone || "—"}</div>
+                              <div className="text-[11px] text-gray-500">{u.email || "—"}</div>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span
+                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                  u.status === "active"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {u.status === "active" ? "সক্রিয়" : "নিষ্ক্রিয়"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
+                              {u.createdAt || "—"}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {adminUser?.role === "super_admin" ? (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setEditingUser(u);
+                                      setUserForm({
+                                        username: u.username,
+                                        password: "",
+                                        name: u.name,
+                                        role: u.role,
+                                        phone: u.phone,
+                                        email: u.email,
+                                        status: u.status,
+                                      });
+                                      setShowUserModal(true);
+                                    }}
+                                    className="p-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 rounded-lg transition"
+                                    title="সম্পাদনা / পাসওয়ার্ড রিসেট"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  {u.username !== "admin" && u.username !== adminUser?.username && (
+                                    <button
+                                      onClick={() => handleDeleteUser(u)}
+                                      className="p-1.5 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 rounded-lg transition"
+                                      title="মুছে ফেলুন"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-gray-400">অনুমতি নেই</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -3101,6 +3488,154 @@ export default function AdminDashboardPage() {
                   className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl text-xs hover:bg-gray-50 transition"
                 >
                   বন্ধ করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal: Add/Edit User */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                <h3 className="text-base font-bold text-gray-900">
+                  {editingUser ? "ব্যবহারকারীর তথ্য ও পাসওয়ার্ড সংশোধন" : "নতুন ব্যবহারকারী যোগ করুন"}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowUserModal(false);
+                  setEditingUser(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  পূর্ণ নাম (Full Name) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  placeholder="যেমন: মাওলানা এ. এইচ. এম. নোমান"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  ইউজারনেম (Username) * {editingUser && <span className="text-gray-400 font-normal">(অপরিবর্তনযোগ্য)</span>}
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={!!editingUser}
+                  value={userForm.username}
+                  onChange={(e) =>
+                    setUserForm({
+                      ...userForm,
+                      username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""),
+                    })
+                  }
+                  placeholder="যেমন: noman_admin"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  পাসওয়ার্ড (Password) {editingUser ? <span className="text-emerald-700 font-normal">(পরিবর্তন না করতে চাইলে ফাঁকা রাখুন)</span> : "*"}
+                </label>
+                <input
+                  type="text"
+                  required={!editingUser}
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  placeholder={editingUser ? "নতুন পাসওয়ার্ড দিন..." : "কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড"}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  ভূমিকা ও অ্যাক্সেস রোল (Role) *
+                </label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                  disabled={editingUser && editingUser.username === "admin"}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                >
+                  <option value="super_admin">👑 সুপার অ্যাডমিন (Full Control & Settings)</option>
+                  <option value="admin">🛡️ অ্যাডমিন (Submissions & Content)</option>
+                  <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক (Verifications & Admit)</option>
+                  <option value="operator">👤 ডাটা এন্ট্রি / অপারেটর (View & Print Only)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">মোবাইল নম্বর</label>
+                  <input
+                    type="text"
+                    value={userForm.phone}
+                    onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                    placeholder="০১৭১..."
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">স্ট্যাটাস</label>
+                  <select
+                    value={userForm.status}
+                    onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                    disabled={editingUser && editingUser.username === "admin"}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                  >
+                    <option value="active">🟢 সক্রিয় (Active)</option>
+                    <option value="inactive">🔴 নিষ্ক্রিয় (Inactive)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">ইমেইল ঠিকানা</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  placeholder="example@mail.com"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserModal(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingUser}
+                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {savingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingUser ? "আপডেট করুন" : "সংরক্ষণ করুন"}</span>
                 </button>
               </div>
             </form>

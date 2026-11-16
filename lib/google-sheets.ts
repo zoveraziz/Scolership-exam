@@ -61,6 +61,10 @@ export async function getExactTabName(preferredName: string): Promise<string> {
       const found = titles.find((t) => t.toLowerCase().includes("committe") || t.includes("পরিচালনা"));
       if (found) return found;
     }
+    if (lower.includes("user") || preferredName.includes("ইউজার")) {
+      const found = titles.find((t) => t.toLowerCase().includes("user") || t.includes("ইউজার"));
+      if (found) return found;
+    }
 
     return preferredName;
   } catch (error) {
@@ -110,6 +114,91 @@ export async function appendSheetRow(tabName: string, rowValues: any[]) {
   } catch (error) {
     console.error(`Error appending to tab ${tabName}:`, error);
     return null;
+  }
+}
+
+/**
+ * Ensures a tab exists with default headers, creating it if necessary
+ */
+export async function ensureSheetTab(tabName: string, defaultHeaders?: string[]): Promise<string> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets || !spreadsheetId) return tabName;
+
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const titles: string[] = meta.data.sheets?.map((s: any) => s.properties?.title) || [];
+    const exact = titles.find((t) => t.toLowerCase() === tabName.toLowerCase());
+    if (exact) return exact;
+
+    // Create new tab
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            addSheet: {
+              properties: {
+                title: tabName,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    if (defaultHeaders && defaultHeaders.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${tabName}!A1`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [defaultHeaders],
+        },
+      });
+    }
+
+    return tabName;
+  } catch (error) {
+    console.error(`Error ensuring tab ${tabName}:`, error);
+    return tabName;
+  }
+}
+
+/**
+ * Delete a specific row in a sheet/tab
+ */
+export async function deleteSheetRow(tabName: string, rowIndex: number): Promise<boolean> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets || !spreadsheetId || rowIndex < 1) return false;
+
+  try {
+    const actualTab = await getExactTabName(tabName);
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetObj = meta.data.sheets?.find((s: any) => s.properties?.title?.toLowerCase() === actualTab.toLowerCase());
+    const sheetId = sheetObj?.properties?.sheetId;
+    if (sheetId === undefined) return false;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex - 1, // 0-based index inclusive
+                endIndex: rowIndex,       // exclusive
+              },
+            },
+          },
+        ],
+      },
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error deleting row ${rowIndex} in ${tabName}:`, error);
+    return false;
   }
 }
 
