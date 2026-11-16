@@ -78,6 +78,47 @@ async function getOrSeedUsers(): Promise<{ rows: any[][]; colMap: Record<string,
     header[4] = "Permissions";
   }
 
+  // Auto-align and fix any legacy rows where columns were shifted
+  let rowsModified = false;
+  const validKeys = ALL_PERMISSIONS.map((p) => p.key as string);
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || !r[0]) continue;
+
+    // Check if row has fewer than 9 columns or column 4 contains a phone/email rather than permissions
+    const val4 = String(r[4] || "").trim();
+    const isShifted =
+      r.length <= 8 ||
+      val4.startsWith("01") ||
+      val4.startsWith("০১") ||
+      val4.includes("@") ||
+      (!validKeys.includes(val4) && !val4.includes(",") && val4 !== "all");
+
+    if (isShifted) {
+      const u = String(r[0] || "").trim();
+      const p = String(r[1] || "").trim();
+      const name = String(r[2] || "").trim();
+      const role = String(r[3] || "admin").trim().toLowerCase();
+      const perms = role === "super_admin" ? "all" : getDefaultPermissions(role).join(",");
+      const phone = String(r[4] || "").trim();
+      const email = String(r[5] || "").trim();
+      const status = String(r[6] || "active").trim();
+      const createdAt = String(r[7] || new Date().toISOString().split("T")[0]).trim();
+
+      rows[i] = [u, p, name, role, perms, phone, email, status, createdAt];
+      rowsModified = true;
+    }
+  }
+
+  if (rowsModified) {
+    try {
+      await updateSheetRange(`Users!A1:I${rows.length}`, [USERS_HEADERS, ...rows.slice(1)]);
+    } catch (err) {
+      console.error("Failed to auto-align Users tab in Google Sheet:", err);
+    }
+  }
+
   const colMap: Record<string, number> = {
     username: 0,
     password: 1,
