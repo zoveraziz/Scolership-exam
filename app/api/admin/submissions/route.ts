@@ -10,6 +10,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
+  const perms = session.permissions || [];
+  if (session.role !== "super_admin" && !perms.includes("view_submissions")) {
+    return NextResponse.json(
+      { success: false, message: "আবেদনকারীদের তালিকা দেখার অনুমতি নেই।" },
+      { status: 403 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const search = (searchParams.get("search") || "").trim().toLowerCase();
@@ -181,6 +189,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
   }
 
+  const perms = session.permissions || [];
+
   try {
     const data = await req.json();
     const { rowIndex } = data;
@@ -191,6 +201,12 @@ export async function PUT(req: NextRequest) {
 
     // Check if it's a full student edit or quick status/roll update
     if (data.name !== undefined) {
+      if (session.role !== "super_admin" && !perms.includes("edit_submissions")) {
+        return NextResponse.json(
+          { success: false, message: "শিক্ষার্থীর তথ্য সংশোধন করার অনুমতি নেই।" },
+          { status: 403 }
+        );
+      }
       // Full Student Update: Col B to Col S
       // B: RegNo, C: Roll, D: Name, E: Father, F: Mother, G: DOB, H: Gender, I: Inst, J: Class,
       // K: PrincipalPhone, L: GuardianPhone, M: Email, N: SenderBkash, O: PayShot, P: Photo,
@@ -219,6 +235,12 @@ export async function PUT(req: NextRequest) {
       ]);
     } else {
       // Quick status/roll/center update
+      if (session.role !== "super_admin" && !perms.includes("approve_admit")) {
+        return NextResponse.json(
+          { success: false, message: "প্রবেশপত্র অনুমোদন বা রোল বরাদ্দ করার অনুমতি নেই।" },
+          { status: 403 }
+        );
+      }
       if (data.rollNumber !== undefined) {
         await updateSheetRange(`Submissions!C${rowIndex}`, [[String(data.rollNumber)]]);
       }
@@ -232,6 +254,41 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "শিক্ষার্থীর সমস্ত তথ্য গুগল স্প্রেডশিটে সফলভাবে আপডেট হয়েছে!",
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (!session) {
+    return NextResponse.json({ success: false, message: "অননুমোদিত" }, { status: 401 });
+  }
+
+  const perms = session.permissions || [];
+  if (session.role !== "super_admin" && !perms.includes("delete_submissions")) {
+    return NextResponse.json(
+      { success: false, message: "আবেদনপত্র মুছে ফেলার অনুমতি নেই।" },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const rowIndex = parseInt(searchParams.get("rowIndex") || "0", 10);
+    if (!rowIndex || rowIndex <= 1) {
+      return NextResponse.json({ success: false, message: "সঠিক রো নম্বর দিন" }, { status: 400 });
+    }
+
+    // Clear submission row or mark as deleted
+    await updateSheetRange(`Submissions!A${rowIndex}:S${rowIndex}`, [
+      new Array(19).fill(""),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      message: "আবেদনপত্র সফলভাবে মুছে ফেলা হয়েছে!",
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

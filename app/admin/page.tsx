@@ -2598,27 +2598,60 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Roles Guide Banner */}
-              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
-                <div className="text-xs font-bold text-emerald-950 mb-2 flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-emerald-700" />
-                  <span>রোল ও পারমিশন ওভারভিউ (Role Hierarchy & Granular Control):</span>
+              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-2.5">
+                <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-emerald-700" />
+                    <span>২. স্ট্যান্ডার্ড RBAC রোল ও পারমিশন কাঠামো (Roles & Permissions):</span>
+                  </div>
+                  <span className="text-[11px] font-normal text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                    গুগল শিট `Roles` ও `Users` ট্যাবের সাথে সিঙ্কড
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-[11px]">
-                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                    <span className="font-bold text-amber-900">👑 সুপার অ্যাডমিন:</span>
-                    <p className="text-gray-600 mt-0.5">সকল সেটিংস, ইউজার তৈরি/ডিলিট ও ডাটার পূর্ণ নিয়ন্ত্রণ (১২/১২ পারমিশন)।</p>
+                  <div className="bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-900">👑 সুপার অ্যাডমিন</span>
+                      <span className="text-[9px] px-1.5 py-0.2 bg-amber-100 text-amber-900 rounded border border-amber-300 font-bold">
+                        গোল্ডেন
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-[10px] leading-snug">
+                      সম্পূর্ণ অ্যাক্সেস: ইউজার তৈরি/ডিলিট, পাসওয়ার্ড রিসেট, ওয়েবসাইট সেটিংস এবং সমস্ত ডাটা কন্ট্রোল।
+                    </p>
                   </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                    <span className="font-bold text-emerald-900">🛡️ অ্যাডমিন:</span>
-                    <p className="text-gray-600 mt-0.5">আবেদনকারী, নোটিশ, কমিটি ও বাণী পরিচালনা (সেটিংস ও ইউজার ছাড়া ৯টি পারমিশন)।</p>
+                  <div className="bg-white p-3 rounded-xl border border-emerald-200/80 shadow-2xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-900">🛡️ অ্যাডমিন</span>
+                      <span className="text-[9px] px-1.5 py-0.2 bg-emerald-100 text-emerald-900 rounded border border-emerald-300 font-bold">
+                        গ্রিন
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-[10px] leading-snug">
+                      আবেদনকারী, নোটিশ, বাণী ও কমিটি পরিচালনা (সেটিংস ও ইউজার তৈরি ছাড়া)।
+                    </p>
                   </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                    <span className="font-bold text-purple-900">🎓 পরীক্ষা নিয়ন্ত্রক:</span>
-                    <p className="text-gray-600 mt-0.5">আবেদন যাচাইকরণ, রোল বণ্টন ও এডমিট কার্ড অনুমোদন (৫টি পারমিশন)।</p>
+                  <div className="bg-white p-3 rounded-xl border border-purple-200/80 shadow-2xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-purple-900">🎓 পরীক্ষা নিয়ন্ত্রক</span>
+                      <span className="text-[9px] px-1.5 py-0.2 bg-purple-100 text-purple-900 rounded border border-purple-300 font-bold">
+                        পার্পল
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-[10px] leading-snug">
+                      শুধুমাত্র আবেদনপত্র যাচাইকরণ, রোল নম্বর বণ্টন ও প্রবেশপত্র অনুমোদন।
+                    </p>
                   </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                    <span className="font-bold text-blue-900">👤 ডাটা এন্ট্রি / অপারেটর:</span>
-                    <p className="text-gray-600 mt-0.5">শুধুমাত্র আবেদনকারী তালিকা দেখা ও এডমিট প্রিন্ট করা।</p>
+                  <div className="bg-white p-3 rounded-xl border border-blue-200/80 shadow-2xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-blue-900">👤 ডাটা এন্ট্রি অপারেটর</span>
+                      <span className="text-[9px] px-1.5 py-0.2 bg-blue-100 text-blue-900 rounded border border-blue-300 font-bold">
+                        ব্লু
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-[10px] leading-snug">
+                      শুধুমাত্র আবেদনকারী তালিকা দেখা এবং প্রবেশপত্র প্রিন্ট করা (নো এডিট)।
+                    </p>
                   </div>
                 </div>
               </div>
@@ -3726,11 +3759,55 @@ export default function AdminDashboardPage() {
                       disabled={editingUser && editingUser.username === "admin"}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                     >
-                      <option value="super_admin">👑 সুপার অ্যাডমিন (Full Control & Settings)</option>
-                      <option value="admin">🛡️ অ্যাডমিন (Submissions & Content)</option>
-                      <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক (Verifications & Admit)</option>
-                      <option value="operator">👤 ডাটা এন্ট্রি / অপারেটর (View & Print Only)</option>
+                      <option value="super_admin">👑 সুপার অ্যাডমিন (গোল্ডেন ব্যাজ)</option>
+                      <option value="admin">🛡️ অ্যাডমিন (গ্রিন ব্যাজ)</option>
+                      <option value="controller">🎓 পরীক্ষা নিয়ন্ত্রক (পার্পল ব্যাজ)</option>
+                      <option value="operator">👤 ডাটা এন্ট্রি অপারেটর (ব্লু ব্যাজ)</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Role Description Card matching Screenshot */}
+                <div className="p-3 rounded-xl border bg-gray-50/70 border-gray-200 text-xs flex items-start gap-2.5">
+                  <div className="mt-0.5 shrink-0">
+                    <span
+                      className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                        userForm.role === "super_admin"
+                          ? "bg-amber-100 text-amber-900 border-amber-300"
+                          : userForm.role === "controller"
+                          ? "bg-purple-100 text-purple-900 border-purple-300"
+                          : userForm.role === "operator"
+                          ? "bg-blue-100 text-blue-900 border-blue-300"
+                          : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                      }`}
+                    >
+                      {userForm.role === "super_admin"
+                        ? "গোল্ডেন ব্যাজ"
+                        : userForm.role === "controller"
+                        ? "পার্পল ব্যাজ"
+                        : userForm.role === "operator"
+                        ? "ব্লু ব্যাজ"
+                        : "গ্রিন ব্যাজ"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-gray-700 leading-relaxed">
+                    <span className="font-bold text-gray-900">
+                      {userForm.role === "super_admin"
+                        ? "👑 সুপার অ্যাডমিন: "
+                        : userForm.role === "controller"
+                        ? "🎓 পরীক্ষা নিয়ন্ত্রক: "
+                        : userForm.role === "operator"
+                        ? "👤 ডাটা এন্ট্রি অপারেটর: "
+                        : "🛡️ অ্যাডমিন: "}
+                    </span>
+                    {userForm.role === "super_admin" &&
+                      "সম্পূর্ণ অ্যাক্সেস: ইউজার তৈরি/ডিলিট, পাসওয়ার্ড রিসেট, ওয়েবসাইট সেটিংস এবং সমস্ত ডাটা কন্ট্রোল।"}
+                    {userForm.role === "admin" &&
+                      "আবেদনকারী, নোটিশ, বাণী ও কমিটি পরিচালনা (সেটিংস ও ইউজার তৈরি ছাড়া)।"}
+                    {userForm.role === "controller" &&
+                      "শুধুমাত্র আবেদনপত্র যাচাইকরণ, রোল নম্বর বণ্টন ও প্রবেশপত্র অনুমোদন।"}
+                    {userForm.role === "operator" &&
+                      "শুধুমাত্র আবেদনকারী তালিকা দেখা এবং প্রবেশপত্র প্রিন্ট করা (নো এডিট)।"}
                   </div>
                 </div>
 

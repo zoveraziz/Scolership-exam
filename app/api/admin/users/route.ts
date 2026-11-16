@@ -42,10 +42,63 @@ const DEFAULT_ADMIN_USER = {
   createdAt: "2026-11-16",
 };
 
+export const ROLES_HEADERS = [
+  "ভূমিকা / রোল (Role)",
+  "রোল আইডি (Role ID)",
+  "ব্যাজ (Badge)",
+  "অনুমতি ও অ্যাক্সেস (Permissions Summary)",
+  "পারমিশন কি-সমূহ (Default Permission Keys)",
+];
+
+export const DEFAULT_ROLES_ROWS = [
+  [
+    "👑 সুপার অ্যাডমিন",
+    "super_admin",
+    "গোল্ডেন",
+    "সম্পূর্ণ অ্যাক্সেস: ইউজার তৈরি/ডিলিট, পাসওয়ার্ড রিসেট, ওয়েবসাইট সেটিংস এবং সমস্ত ডাটা কন্ট্রোল।",
+    "all",
+  ],
+  [
+    "🛡️ অ্যাডমিন",
+    "admin",
+    "গ্রিন",
+    "আবেদনকারী, নোটিশ, বাণী ও কমিটি পরিচালনা (সেটিংস ও ইউজার তৈরি ছাড়া)।",
+    "view_submissions,approve_admit,edit_submissions,manage_controllers,manage_notices,manage_messages,manage_committee,manage_pages,export_data",
+  ],
+  [
+    "🎓 পরীক্ষা নিয়ন্ত্রক",
+    "controller",
+    "পার্পল",
+    "শুধুমাত্র আবেদনপত্র যাচাইকরণ, রোল নম্বর বণ্টন ও প্রবেশপত্র অনুমোদন।",
+    "view_submissions,approve_admit,edit_submissions,manage_controllers,export_data",
+  ],
+  [
+    "👤 ডাটা এন্ট্রি অপারেটর",
+    "operator",
+    "ব্লু",
+    "শুধুমাত্র আবেদনকারী তালিকা দেখা এবং প্রবেশপত্র প্রিন্ট করা (নো এডিট)।",
+    "view_submissions",
+  ],
+];
+
+export async function ensureRolesTab(): Promise<void> {
+  try {
+    await ensureSheetTab("Roles", ROLES_HEADERS);
+    const existing = await getSheetData("Roles");
+    if (!existing || existing.length <= 1) {
+      await updateSheetRange("Roles!A1:E1", [ROLES_HEADERS]);
+      await updateSheetRange("Roles!A2:E5", DEFAULT_ROLES_ROWS);
+    }
+  } catch (err) {
+    console.error("Error creating/syncing Roles tab in Google Sheet:", err);
+  }
+}
+
 /**
  * Ensures Users tab exists and has the standard 9-column header with Permissions.
  */
 async function getOrSeedUsers(): Promise<{ rows: any[][]; colMap: Record<string, number> }> {
+  await ensureRolesTab();
   await ensureSheetTab("Users", USERS_HEADERS);
   let rows = await getSheetData("Users");
 

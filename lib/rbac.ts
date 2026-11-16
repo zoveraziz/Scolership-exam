@@ -102,6 +102,7 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
 export interface RoleConfig {
   id: UserRole;
   label: string;
+  badge: string;
   badgeClass: string;
   description: string;
   defaultPermissions: PermissionKey[];
@@ -110,16 +111,18 @@ export interface RoleConfig {
 export const ROLES: Record<UserRole, RoleConfig> = {
   super_admin: {
     id: "super_admin",
-    label: "সুপার অ্যাডমিন",
+    label: "👑 সুপার অ্যাডমিন",
+    badge: "গোল্ডেন",
     badgeClass: "bg-amber-100 text-amber-900 border-amber-300",
-    description: "সকল সেটিংস, ইউজার ও ডাটার পূর্ণ নিয়ন্ত্রণ ও অ্যাক্সেস",
+    description: "সম্পূর্ণ অ্যাক্সেস: ইউজার তৈরি/ডিলিট, পাসওয়ার্ড রিসেট, ওয়েবসাইট সেটিংস এবং সমস্ত ডাটা কন্ট্রোল।",
     defaultPermissions: ALL_PERMISSIONS.map((p) => p.key),
   },
   admin: {
     id: "admin",
-    label: "অ্যাডমিন",
+    label: "🛡️ অ্যাডমিন",
+    badge: "গ্রিন",
     badgeClass: "bg-emerald-100 text-emerald-900 border-emerald-300",
-    description: "আবেদনকারী, প্রবেশপত্র ও কনটেন্ট পরিচালনা (সেটিংস ও ইউজার ছাড়া)",
+    description: "আবেদনকারী, নোটিশ, বাণী ও কমিটি পরিচালনা (সেটিংস ও ইউজার তৈরি ছাড়া)।",
     defaultPermissions: [
       "view_submissions",
       "edit_submissions",
@@ -134,9 +137,10 @@ export const ROLES: Record<UserRole, RoleConfig> = {
   },
   controller: {
     id: "controller",
-    label: "পরীক্ষা নিয়ন্ত্রক",
+    label: "🎓 পরীক্ষা নিয়ন্ত্রক",
+    badge: "পার্পল",
     badgeClass: "bg-purple-100 text-purple-900 border-purple-300",
-    description: "আবেদন যাচাইকরণ, রোল নম্বর বণ্টন ও প্রবেশপত্র অনুমোদন",
+    description: "শুধুমাত্র আবেদনপত্র যাচাইকরণ, রোল নম্বর বণ্টন ও প্রবেশপত্র অনুমোদন।",
     defaultPermissions: [
       "view_submissions",
       "approve_admit",
@@ -147,9 +151,10 @@ export const ROLES: Record<UserRole, RoleConfig> = {
   },
   operator: {
     id: "operator",
-    label: "ডাটা এন্ট্রি / অপারেটর",
+    label: "👤 ডাটা এন্ট্রি অপারেটর",
+    badge: "ব্লু",
     badgeClass: "bg-blue-100 text-blue-900 border-blue-300",
-    description: "শুধুমাত্র আবেদনকারী ও প্রবেশপত্র দেখা এবং প্রিন্ট করা",
+    description: "শুধুমাত্র আবেদনকারী তালিকা দেখা এবং প্রবেশপত্র প্রিন্ট করা (নো এডিট)।",
     defaultPermissions: ["view_submissions"],
   },
 };
@@ -159,48 +164,146 @@ export function getDefaultPermissions(role?: string): PermissionKey[] {
   return ROLES[r]?.defaultPermissions || ROLES.admin.defaultPermissions;
 }
 
+const BENGALI_OR_ALIAS_TO_KEY: Record<string, PermissionKey> = {
+  // English keys
+  manage_users: "manage_users",
+  manage_settings: "manage_settings",
+  view_submissions: "view_submissions",
+  edit_submissions: "edit_submissions",
+  approve_admit: "approve_admit",
+  delete_submissions: "delete_submissions",
+  manage_controllers: "manage_controllers",
+  export_data: "export_data",
+  manage_notices: "manage_notices",
+  manage_messages: "manage_messages",
+  manage_committee: "manage_committee",
+  manage_pages: "manage_pages",
+
+  // Bengali aliases
+  "ইউজার": "manage_users",
+  "ব্যবহারকারী": "manage_users",
+  "ইউজার তৈরি": "manage_users",
+  "সেটিংস": "manage_settings",
+  "ওয়েবসাইট সেটিংস": "manage_settings",
+  "আবেদন": "view_submissions",
+  "আবেদনকারী": "view_submissions",
+  "আবেদনপত্র": "view_submissions",
+  "তালিকা": "view_submissions",
+  "এডমিট": "approve_admit",
+  "প্রবেশপত্র": "approve_admit",
+  "রোল": "approve_admit",
+  "অনুমোদন": "approve_admit",
+  "সংশোধন": "edit_submissions",
+  "এডিট": "edit_submissions",
+  "ডিলিট": "delete_submissions",
+  "বাতিল": "delete_submissions",
+  "নিয়ন্ত্রক": "manage_controllers",
+  "পরীক্ষা নিয়ন্ত্রক": "manage_controllers",
+  "স্বাক্ষর": "manage_controllers",
+  "এক্সপোর্ট": "export_data",
+  "ডাউনলোড": "export_data",
+  "নোটিশ": "manage_notices",
+  "বাণী": "manage_messages",
+  "গুণীজন": "manage_messages",
+  "কমিটি": "manage_committee",
+  "পরিচালনা": "manage_committee",
+  "পেজ": "manage_pages",
+  "মেনু": "manage_pages",
+};
+
 /**
  * Normalizes permissions from a comma-separated string, JSON, or falls back to role defaults.
+ * Dynamic: Whatever is explicitly present becomes active; whatever is omitted is revoked.
  */
 export function normalizePermissions(
   role: string,
   rawPerms?: string | string[]
 ): PermissionKey[] {
-  if (role === "super_admin") {
-    return ALL_PERMISSIONS.map((p) => p.key);
-  }
-
   const validKeys = ALL_PERMISSIONS.map((p) => p.key as string);
+  const normalizedRole = (role || "admin").toLowerCase().trim() as UserRole;
 
-  if (Array.isArray(rawPerms) && rawPerms.length > 0) {
-    const filtered = (rawPerms as string[]).filter((k) => validKeys.includes(k)) as PermissionKey[];
-    if (filtered.length > 0) return filtered;
+  // 1. If rawPerms is undefined or null, fallback to role defaults
+  if (rawPerms === undefined || rawPerms === null) {
+    return getDefaultPermissions(normalizedRole);
   }
 
-  if (typeof rawPerms === "string" && rawPerms.trim()) {
-    const trimmed = rawPerms.trim();
-    if (trimmed.toLowerCase() === "all" || trimmed.toLowerCase() === "*") {
+  // 2. If rawPerms is a string
+  if (typeof rawPerms === "string") {
+    const trimmed = rawPerms.trim().toLowerCase();
+    if (!trimmed) {
+      return getDefaultPermissions(normalizedRole);
+    }
+
+    if (trimmed === "all" || trimmed === "*" || trimmed === "সব" || trimmed === "সম্পূর্ণ") {
       return ALL_PERMISSIONS.map((p) => p.key);
     }
+
+    if (trimmed === "none" || trimmed === "null" || trimmed === "বাদ" || trimmed === "নিষ্ক্রিয়") {
+      return [];
+    }
+
+    // Role shorthand: if someone writes "controller", "admin", "operator"
+    if (trimmed === "controller") return ROLES.controller.defaultPermissions;
+    if (trimmed === "admin") return ROLES.admin.defaultPermissions;
+    if (trimmed === "operator") return ROLES.operator.defaultPermissions;
+    if (trimmed === "super_admin") return ROLES.super_admin.defaultPermissions;
+
     try {
       if (trimmed.startsWith("[")) {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter((k: any) => validKeys.includes(String(k))) as PermissionKey[];
-          if (filtered.length > 0) return filtered;
+        if (Array.isArray(parsed)) {
+          return normalizePermissions(role, parsed);
         }
       }
     } catch (_) {}
 
-    const list = trimmed
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => validKeys.includes(s)) as PermissionKey[];
+    const tokens = trimmed.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const resultSet = new Set<PermissionKey>();
 
-    if (list.length > 0) return list;
+    for (const token of tokens) {
+      if (validKeys.includes(token)) {
+        resultSet.add(token as PermissionKey);
+      } else {
+        // Match Bengali alias
+        for (const [alias, key] of Object.entries(BENGALI_OR_ALIAS_TO_KEY)) {
+          if (token === alias || token.includes(alias)) {
+            resultSet.add(key);
+          }
+        }
+      }
+    }
+
+    if (resultSet.size > 0) {
+      return Array.from(resultSet);
+    }
+
+    return getDefaultPermissions(normalizedRole);
   }
 
-  return getDefaultPermissions(role);
+  // 3. If rawPerms is an array
+  if (Array.isArray(rawPerms)) {
+    if (rawPerms.length === 0) {
+      return getDefaultPermissions(normalizedRole);
+    }
+    const resultSet = new Set<PermissionKey>();
+    for (const item of rawPerms) {
+      const token = String(item || "").trim().toLowerCase();
+      if (validKeys.includes(token)) {
+        resultSet.add(token as PermissionKey);
+      } else if (token === "all" || token === "*") {
+        return ALL_PERMISSIONS.map((p) => p.key);
+      } else {
+        for (const [alias, key] of Object.entries(BENGALI_OR_ALIAS_TO_KEY)) {
+          if (token === alias || token.includes(alias)) {
+            resultSet.add(key);
+          }
+        }
+      }
+    }
+    return Array.from(resultSet);
+  }
+
+  return getDefaultPermissions(normalizedRole);
 }
 
 export function permissionsToMap(permissions: PermissionKey[]): Record<string, boolean> {
