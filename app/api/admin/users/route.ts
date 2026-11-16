@@ -83,12 +83,9 @@ export const DEFAULT_ROLES_ROWS = [
 
 export async function ensureRolesTab(): Promise<void> {
   try {
-    await ensureSheetTab("Roles", ROLES_HEADERS);
-    const existing = await getSheetData("Roles");
-    if (!existing || existing.length <= 1) {
-      await updateSheetRange("Roles!A1:E1", [ROLES_HEADERS]);
-      await updateSheetRange("Roles!A2:E5", DEFAULT_ROLES_ROWS);
-    }
+    const tabName = await ensureSheetTab("Roles", ROLES_HEADERS);
+    await updateSheetRange(`${tabName}!A1:E1`, [ROLES_HEADERS]);
+    await updateSheetRange(`${tabName}!A2:E5`, DEFAULT_ROLES_ROWS);
   } catch (err) {
     console.error("Error creating/syncing Roles tab in Google Sheet:", err);
   }
@@ -197,6 +194,42 @@ async function getOrSeedUsers(): Promise<{ rows: any[][]; colMap: Record<string,
     else if (s.includes("date") || s.includes("তারিখ")) colMap.createdAt = idx;
   });
 
+  // Ensure all 4 standard roles exist in Users tab as accounts
+  const existingRoles = rows.slice(1).map((r) => String(r[colMap.role] || "").toLowerCase().trim());
+  const existingUsernames = rows.slice(1).map((r) => String(r[colMap.username] || "").toLowerCase().trim());
+
+  if (!existingRoles.includes("admin") && !existingUsernames.includes("staff_admin")) {
+    const adminRow = [
+      "staff_admin",
+      "Admin@Pass2026",
+      "সহকারী অ্যাডমিন (কমিটি ও নোটিশ)",
+      "admin",
+      getDefaultPermissions("admin").join(","),
+      "০১৮২২৮৬২৯৩৯",
+      "admin@swf.org",
+      "active",
+      "2026-11-16",
+    ];
+    await appendSheetRow("Users", adminRow);
+    rows.push(adminRow);
+  }
+
+  if (!existingRoles.includes("operator") && !existingUsernames.includes("data_operator")) {
+    const operatorRow = [
+      "data_operator",
+      "Operator@Pass2026",
+      "ডাটা এন্ট্রি অপারেটর (প্রবেশপত্র প্রিন্ট)",
+      "operator",
+      "view_submissions",
+      "০১৭১০০০০০০০",
+      "operator@swf.org",
+      "active",
+      "2026-11-16",
+    ];
+    await appendSheetRow("Users", operatorRow);
+    rows.push(operatorRow);
+  }
+
   return { rows, colMap };
 }
 
@@ -265,6 +298,7 @@ export async function GET(req: NextRequest) {
       roles: Object.values(ROLES).map((rc) => ({
         id: rc.id,
         label: rc.label,
+        badge: rc.badge,
         description: rc.description,
         badgeClass: rc.badgeClass,
         defaultPermissions: rc.defaultPermissions,

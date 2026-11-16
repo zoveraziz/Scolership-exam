@@ -3,7 +3,7 @@ import { google } from "googleapis";
 // Google Cloud Service Account configuration (Strictly loaded from Environment Variables)
 const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
 const privateKey = (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-const spreadsheetId = process.env.GOOGLE_SHEET_ID || "";
+export const spreadsheetId = process.env.GOOGLE_SHEET_ID || "";
 
 let sheetsClient: any = null;
 
