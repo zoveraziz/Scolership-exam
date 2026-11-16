@@ -134,8 +134,18 @@ export async function GET(req: NextRequest) {
 
       const rawRole = (r[colMap.role] || "admin").toLowerCase().trim() as UserRole;
       const roleConfig = ROLES[rawRole] || ROLES.admin;
-      const rawPerms = colMap.permissions !== -1 ? r[colMap.permissions] : "";
+      const isLegacy8Col = r.length <= 8;
+      const rawPerms = isLegacy8Col ? "" : (colMap.permissions !== -1 ? r[colMap.permissions] : "");
       const normalized = normalizePermissions(rawRole, rawPerms);
+
+      const phoneVal = isLegacy8Col ? r[4] : (colMap.phone !== -1 ? r[colMap.phone] : "");
+      const emailVal = isLegacy8Col ? r[5] : (colMap.email !== -1 ? r[colMap.email] : "");
+      const statusVal = isLegacy8Col
+        ? r[6]
+        : (colMap.status !== -1 ? r[colMap.status] : "active");
+      const createdAtVal = isLegacy8Col
+        ? r[7]
+        : (colMap.createdAt !== -1 ? r[colMap.createdAt] : "");
 
       users.push({
         rowIndex: i + 1,
@@ -145,13 +155,13 @@ export async function GET(req: NextRequest) {
         roleLabel: roleConfig.label,
         roleBadge: roleConfig.badgeClass,
         permissions: normalized,
-        phone: String(r[colMap.phone] || "").trim(),
-        email: String(r[colMap.email] || "").trim(),
+        phone: String(phoneVal || "").trim(),
+        email: String(emailVal || "").trim(),
         status:
-          String(r[colMap.status] || "active").toLowerCase().trim() === "inactive"
+          String(statusVal || "active").toLowerCase().trim() === "inactive"
             ? "inactive"
             : "active",
-        createdAt: String(r[colMap.createdAt] || "").trim(),
+        createdAt: String(createdAtVal || "").trim(),
       });
     }
 

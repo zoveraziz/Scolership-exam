@@ -170,8 +170,11 @@ export function normalizePermissions(
     return ALL_PERMISSIONS.map((p) => p.key);
   }
 
+  const validKeys = ALL_PERMISSIONS.map((p) => p.key as string);
+
   if (Array.isArray(rawPerms) && rawPerms.length > 0) {
-    return rawPerms as PermissionKey[];
+    const filtered = (rawPerms as string[]).filter((k) => validKeys.includes(k)) as PermissionKey[];
+    if (filtered.length > 0) return filtered;
   }
 
   if (typeof rawPerms === "string" && rawPerms.trim()) {
@@ -182,14 +185,17 @@ export function normalizePermissions(
     try {
       if (trimmed.startsWith("[")) {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed as PermissionKey[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const filtered = parsed.filter((k: any) => validKeys.includes(String(k))) as PermissionKey[];
+          if (filtered.length > 0) return filtered;
+        }
       }
     } catch (_) {}
 
     const list = trimmed
       .split(",")
       .map((s) => s.trim().toLowerCase())
-      .filter((s) => s.length > 0) as PermissionKey[];
+      .filter((s) => validKeys.includes(s)) as PermissionKey[];
 
     if (list.length > 0) return list;
   }
